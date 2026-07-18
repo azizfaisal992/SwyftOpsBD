@@ -1,10 +1,11 @@
+import React from 'react'
+
 const App = () => {
   return (
-    <div className='bg-orange-400 min-h-screen flex items-center justify-center'>
-      hui
+    <div>
       
     </div>
   )
 }
 
-export default App
+export default App;

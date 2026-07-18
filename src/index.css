@@ -1,1 +1,65 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    font-family: var(--font-sans);
+    background: white;
+  }
+
+  a,
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .primary-button {
+    border-radius: 9999px;
+    background: #003d9b;
+    padding: 0.75rem 2rem;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background-color 160ms ease, transform 160ms ease;
+  }
+
+  .primary-button:hover {
+    background: #002f78;
+    transform: translateY(-1px);
+  }
+
+  .nav-link {
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    color: #434654;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .nav-link:hover {
+    color: #003d9b;
+  }
+
+  .mobile-link {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: #434654;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .mobile-link:hover {
+    background: #f0f3ff;
+  }
+}
