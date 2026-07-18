@@ -62,4 +62,42 @@
   .mobile-link:hover {
     background: #f0f3ff;
   }
+
+  .auth-label {
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #101c2d;
+  }
+
+  .auth-input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #c3c6d6;
+    background: white;
+    padding: 0.75rem 1rem;
+    color: #101c2d;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .auth-input:focus {
+    border-color: #003d9b;
+    box-shadow: 0 0 0 3px rgb(0 61 155 / 12%);
+  }
+
+  .auth-provider {
+    border-radius: 0.5rem;
+    border: 1px solid #c3c6d6;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #101c2d;
+    transition: background-color 160ms ease;
+  }
+
+  .auth-provider:hover {
+    background: #f0f3ff;
+  }
 }
