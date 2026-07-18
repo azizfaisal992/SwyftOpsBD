@@ -1,6 +1,14 @@
+import logoImage from "../assets/F.png";
+
 const footerGroups = [
   {
-    title: "SwiftOpsBD",
+    title: (
+      <img
+        src={logoImage}
+        className="block h-auto w-40 max-w-full object-contain object-left"
+        alt="SwiftOpsBD"
+      />
+    ),
     links: ["About us", "Newsroom", "Careers", "Terms of use", "Privacy policy"],
   },
   {
