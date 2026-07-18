@@ -1,7 +1,8 @@
-import heroImage from "../assets/home-hero.jpg";
+import heroImage from "../assets/hero.png";
 import sarahImage from "../assets/caregiver-sarah.jpg";
 import allexusImage from "../assets/caregiver-allexus.jpg";
 import kellyImage from "../assets/caregiver-kelly.jpg";
+import { Link } from "react-router-dom";
 
 const Icon = ({ name, className = "size-6" }) => {
   const paths = {
@@ -176,7 +177,7 @@ const Home = () => (
             </article>
           ))}
         </div>
-        <a id="join" className="primary-button mt-14 inline-block !px-12 !py-4 text-lg" href="#services">Get started</a>
+        <Link id="join" className="primary-button mt-14 inline-block !px-12 !py-4 text-lg" to="/join">Get started</Link>
       </div>
     </section>
   </>
