@@ -100,4 +100,121 @@
   .auth-provider:hover {
     background: #f0f3ff;
   }
+
+  .google-auth-button {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    border: 1px solid #d8dee9;
+    border-radius: 0.3rem;
+    background: white;
+    padding: 0.8rem 1rem;
+    color: #202124;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgb(16 28 45 / 4%);
+    transition: background-color 160ms ease, border-color 160ms ease;
+  }
+
+  .google-auth-button:hover {
+    border-color: #c3c6d6;
+    background: #f8faff;
+  }
+
+  .onboarding-input {
+    width: 100%;
+    border-radius: 0.25rem;
+    border: 1px solid #c3c6d6;
+    background: #f4f5f7;
+    padding: 0.8rem;
+    color: #101c2d;
+    outline: none;
+  }
+
+  .onboarding-input:focus {
+    border-color: #003d9b;
+    box-shadow: 0 0 0 3px rgb(0 61 155 / 10%);
+  }
+
+  .onboarding-action {
+    border-radius: 0.75rem;
+    background: #003d9b;
+    padding: 0.85rem 2rem;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 8px 14px rgb(0 61 155 / 16%);
+  }
+
+  .onboarding-action:hover {
+    background: #002f78;
+  }
+
+  .secondary-action {
+    border-radius: 0.75rem;
+    border: 1px solid #c3c6d6;
+    background: white;
+    padding: 0.8rem 1.5rem;
+    color: #434654;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .assessment-option {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #c3c6d6;
+    border-radius: 0.25rem;
+    padding: 0.9rem;
+    font-size: 0.875rem;
+  }
+
+  .assessment-option:hover {
+    border-color: #003d9b;
+    background: #f9f9ff;
+  }
+
+  .assessment-option input {
+    accent-color: #003d9b;
+  }
+
+  .question-number {
+    margin-right: 0.5rem;
+    display: inline-grid;
+    height: 1.5rem;
+    width: 1.5rem;
+    place-items: center;
+    border-radius: 9999px;
+    background: #e7eeff;
+    color: #003d9b;
+    font-size: 0.75rem;
+  }
+
+  .find-care-search-field {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #c3c6d6;
+    border-radius: 0.5rem;
+    background: #f4f5f7;
+    padding: 0.75rem 1rem;
+    color: #434654;
+  }
+
+  .find-care-search-field input,
+  .find-care-search-field select {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #101c2d;
+    font-size: 0.875rem;
+    font-weight: 600;
+    outline: none;
+  }
 }

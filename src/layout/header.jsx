@@ -31,7 +31,7 @@ const Header = () => {
                 <ChevronDown className="size-4" />
               </span>
             </Link>
-            <a className="nav-link" href="#caregivers">Find jobs</a>
+            <Link className="nav-link" to="/find-jobs">Find jobs</Link>
             <a className="nav-link" href="#how-it-works">Resources</a>
           </nav>
         </div>
@@ -89,7 +89,7 @@ const Header = () => {
       {menuOpen && (
         <nav className="grid gap-1 border-t border-slate-200 bg-white p-4 md:hidden">
           <Link className="mobile-link" to="/find-care">Find care</Link>
-          <a className="mobile-link" href="#caregivers">Find jobs</a>
+          <Link className="mobile-link" to="/find-jobs">Find jobs</Link>
           <a className="mobile-link" href="#how-it-works">Resources</a>
           {user ? (
             <>
