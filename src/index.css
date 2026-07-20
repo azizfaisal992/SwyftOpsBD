@@ -217,4 +217,70 @@
     font-weight: 600;
     outline: none;
   }
+
+  .client-label {
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111c2c;
+  }
+
+  .client-label b {
+    color: #c52828;
+  }
+
+  .client-input {
+    width: 100%;
+    border: 1px solid #c5cad8;
+    border-radius: 0.2rem;
+    background: #f5f6f8;
+    padding: 0.72rem 0.8rem;
+    color: #202a3a;
+    outline: none;
+  }
+
+  .client-input:focus {
+    border-color: #0047a8;
+    box-shadow: 0 0 0 3px rgb(0 71 168 / 10%);
+  }
+
+  .client-field-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    width: 1rem;
+    height: 1rem;
+    transform: translateY(-50%);
+    color: #565d6d;
+    pointer-events: none;
+  }
+
+  .portal-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-radius: 0.75rem;
+    background: #0649ad;
+    padding: 0.9rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 5px 12px rgb(6 73 173 / 15%);
+  }
+
+  .portal-action.light {
+    background: #dce8ff;
+    color: #0649ad;
+  }
+
+  .plan-label {
+    margin-bottom: 0.75rem;
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4c5261;
+  }
 }
