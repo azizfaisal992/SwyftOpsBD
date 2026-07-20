@@ -34,7 +34,7 @@ const AuthenticationForm = ({ mode }) => {
   const accountType = searchParams.get("type");
   const isRegister = mode === "register";
   const roleLabel = accountType === "professional" ? "care professional" : "family";
-  const destination = accountType === "professional" ? "/caregiver/profile-setup" : "/";
+  const destination = accountType === "professional" ? "/caregiver/profile-setup" : accountType === "family" ? "/client/profile-setup" : "/";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
