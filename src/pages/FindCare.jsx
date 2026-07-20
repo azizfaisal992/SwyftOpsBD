@@ -31,6 +31,8 @@ const caregivers = [
     rate: 850,
     rating: 4.9,
     reviews: 84,
+    gender: "Female",
+    experienceYears: 8,
     experience: "8+ Years Experience",
     image: kellyImage,
     tags: ["Senior Care", "Medication"],
@@ -46,6 +48,8 @@ const caregivers = [
     rate: 920,
     rating: 4.8,
     reviews: 126,
+    gender: "Female",
+    experienceYears: 7,
     experience: "7 Years Experience",
     image: sarahImage,
     tags: ["Physiotherapy", "Dementia Care"],
@@ -61,6 +65,8 @@ const caregivers = [
     rate: 780,
     rating: 4.7,
     reviews: 56,
+    gender: "Female",
+    experienceYears: 6,
     experience: "6 Years Experience",
     image: domenicaImage,
     tags: ["Home Nursing", "Post-Op"],
@@ -76,6 +82,8 @@ const caregivers = [
     rate: 650,
     rating: 5,
     reviews: 18,
+    gender: "Female",
+    experienceYears: 5,
     experience: "5 Years Experience",
     image: milaImage,
     tags: ["Companion Care", "Nutrition"],
@@ -91,6 +99,8 @@ const caregivers = [
     rate: 600,
     rating: 4.9,
     reviews: 42,
+    gender: "Female",
+    experienceYears: 5,
     experience: "5+ Years Experience",
     image: jasmineImage,
     tags: ["Child Care", "Special Needs"],
@@ -99,7 +109,33 @@ const caregivers = [
   },
 ];
 
-const filterChips = ["Service Category", "Hourly Rate", "Gender", "Experience"];
+const filterChips = [
+  {
+    id: "service",
+    label: "Service",
+    options: ["All Services", "Senior Care", "Child Care", "Home Nursing", "Companion Care", "Physiotherapy", "Dementia Care"],
+  },
+  {
+    id: "rate",
+    label: "Hourly Rate",
+    options: ["Any Rate", "Up to ৳700", "Up to ৳850", "Up to ৳1,000"],
+  },
+  {
+    id: "gender",
+    label: "Gender",
+    options: ["Any Gender", "Female", "Male"],
+  },
+  {
+    id: "experience",
+    label: "Experience",
+    options: ["Any Experience", "5+ Years", "7+ Years", "8+ Years"],
+  },
+  {
+    id: "rating",
+    label: "Rating",
+    options: ["Any Rating", "4.7+", "4.8+", "4.9+"],
+  },
+];
 
 const FindCareFooter = () => (
   <footer className="border-t border-[#c3c6d6] bg-[#d7e3fb]">
@@ -122,13 +158,47 @@ const FindCare = () => {
   const [location, setLocation] = useState("Gulshan, Dhaka 1212");
   const [maxRate, setMaxRate] = useState("");
   const [search, setSearch] = useState({ service: "", location: "", maxRate: "" });
+  const [chipFilters, setChipFilters] = useState({
+    service: "All Services",
+    rate: "Any Rate",
+    gender: "Any Gender",
+    experience: "Any Experience",
+    rating: "Any Rating",
+  });
 
   const visibleCaregivers = useMemo(() => caregivers.filter((caregiver) => {
     const matchesService = !search.service || caregiver.tags.some((tag) => tag.toLowerCase().includes(search.service.toLowerCase())) || caregiver.role.toLowerCase().includes(search.service.toLowerCase());
     const matchesLocation = !search.location || caregiver.location.toLowerCase().includes(search.location.split(",")[0].toLowerCase()) || search.location.toLowerCase().includes("dhaka");
     const matchesRate = !search.maxRate || caregiver.rate <= Number(search.maxRate);
-    return matchesService && matchesLocation && matchesRate;
-  }), [search]);
+    const matchesChipService =
+      chipFilters.service === "All Services" ||
+      caregiver.tags.includes(chipFilters.service) ||
+      caregiver.role.toLowerCase().includes(chipFilters.service.toLowerCase());
+    const chipRate = Number(chipFilters.rate.match(/\d[\d,]*/)?.[0]?.replace(",", "") || 0);
+    const matchesChipRate = !chipRate || caregiver.rate <= chipRate;
+    const matchesGender = chipFilters.gender === "Any Gender" || caregiver.gender === chipFilters.gender;
+    const experienceMinimum = Number(chipFilters.experience.match(/\d+/)?.[0] || 0);
+    const matchesExperience = !experienceMinimum || caregiver.experienceYears >= experienceMinimum;
+    const ratingMinimum = Number(chipFilters.rating.match(/\d\.\d/)?.[0] || 0);
+    const matchesRating = !ratingMinimum || caregiver.rating >= ratingMinimum;
+    return matchesService && matchesLocation && matchesRate && matchesChipService && matchesChipRate && matchesGender && matchesExperience && matchesRating;
+  }), [chipFilters, search]);
+
+  const filtersAreActive = Object.entries(chipFilters).some(([key, value]) => ({
+    service: "All Services",
+    rate: "Any Rate",
+    gender: "Any Gender",
+    experience: "Any Experience",
+    rating: "Any Rating",
+  })[key] !== value);
+
+  const resetChipFilters = () => setChipFilters({
+    service: "All Services",
+    rate: "Any Rate",
+    gender: "Any Gender",
+    experience: "Any Experience",
+    rating: "Any Rating",
+  });
 
   const selected = caregivers.find((caregiver) => caregiver.id === selectedId) || visibleCaregivers[0] || caregivers[0];
 
@@ -158,7 +228,30 @@ const FindCare = () => {
             <button className="flex items-center justify-center gap-2 rounded-lg bg-[#003d9b] px-7 py-3 font-semibold text-white hover:bg-[#002f78]" type="submit"><Search className="size-5" />Find Care</button>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {filterChips.map((chip) => <button className="flex shrink-0 items-center gap-1 rounded-full border border-[#c3c6d6] bg-[#f0f3ff] px-4 py-2 text-xs font-medium" type="button" key={chip}>{chip}<ChevronDown className="size-3" /></button>)}
+            {filterChips.map((chip) => {
+              const defaultValue = chip.options[0];
+              const active = chipFilters[chip.id] !== defaultValue;
+              return (
+                <label
+                  className={`relative flex shrink-0 items-center rounded-full border px-4 py-2 text-xs font-medium ${
+                    active ? "border-[#003d9b] bg-[#003d9b] text-white" : "border-[#c3c6d6] bg-[#f0f3ff]"
+                  }`}
+                  key={chip.id}
+                >
+                  <span className="pointer-events-none mr-1">{active ? chipFilters[chip.id] : chip.label}</span>
+                  <ChevronDown className="pointer-events-none size-3" />
+                  <select
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    aria-label={`Filter by ${chip.label}`}
+                    value={chipFilters[chip.id]}
+                    onChange={(event) => setChipFilters((current) => ({ ...current, [chip.id]: event.target.value }))}
+                  >
+                    {chip.options.map((option) => <option value={option} key={option}>{option}</option>)}
+                  </select>
+                </label>
+              );
+            })}
+            {filtersAreActive && <button className="shrink-0 rounded-full px-3 py-2 text-xs font-semibold text-[#003d9b] hover:bg-[#f0f3ff]" type="button" onClick={resetChipFilters}>Clear filters</button>}
             <span className="mx-1 h-8 w-px shrink-0 bg-[#c3c6d6]" />
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#9df5c5] px-4 py-2 text-xs font-medium text-[#10734d]"><ShieldCheck className="size-4" />Background Checked</span>
           </div>
