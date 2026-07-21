@@ -91,7 +91,7 @@ const CaregiverProfileSetup = () => {
   return (
     <OnboardingLayout activeStep="profile">
       <header className="mb-6">
-        <h1 className="text-3xl font-semibold">Profile Setup</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">Profile Setup</h1>
         <p className="mt-2 text-sm text-[#434654]">Help families get to know you better by completing your professional profile.</p>
       </header>
 
@@ -108,7 +108,7 @@ const CaregiverProfileSetup = () => {
             <div>
               <h2 className="font-semibold">Professional Photo <span className="text-red-600">*</span></h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-[#434654]">A clear, professional headshot helps build trust with families. Use a bright, neutral background.</p>
-              <div className="mt-3 flex gap-2 text-xs text-[#434654]"><span className="rounded-full bg-[#f0f3ff] px-3 py-1">JPG or PNG</span><span className="rounded-full bg-[#f0f3ff] px-3 py-1">Max 5MB</span></div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#434654]"><span className="rounded-full bg-[#f0f3ff] px-3 py-1">JPG or PNG</span><span className="rounded-full bg-[#f0f3ff] px-3 py-1">Max 5MB</span></div>
               {displayedPhotoName && <button className="mt-3 text-xs font-semibold text-red-700" type="button" onClick={removePhoto}>Remove photo</button>}
             </div>
           </div>
@@ -125,12 +125,12 @@ const CaregiverProfileSetup = () => {
         </OnboardingCard>
 
         <OnboardingCard title="Location & Service Area" icon={MapPin}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="sm:col-span-3"><Field label="Primary Address" name="address" defaultValue={record.profile.address} placeholder="House, road and area" required /></div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="sm:col-span-2 lg:col-span-3"><Field label="Primary Address" name="address" defaultValue={record.profile.address} placeholder="House, road and area" required /></div>
             <Field label="City" name="city" defaultValue={record.profile.city} placeholder="Dhaka" required />
             <Field label="Division" name="state" defaultValue={record.profile.state} placeholder="Dhaka" required />
             <Field label="Postal Code" name="zipCode" defaultValue={record.profile.zipCode} placeholder="1212" required />
-            <label className="sm:col-span-3">
+            <label className="sm:col-span-2 lg:col-span-3">
               <span className="mb-2 block text-sm font-semibold text-[#434654]">Service Radius (miles)</span>
               <input className="w-full accent-[#003d9b]" name="serviceRadius" type="range" min="5" max="50" defaultValue={record.profile.serviceRadius} />
               <span className="mt-1 flex justify-between text-xs text-[#737685]"><span>5 miles</span><span>25 miles</span><span>50+ miles</span></span>
