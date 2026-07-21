@@ -78,7 +78,7 @@ const CaregiverAssessment = () => {
   return (
     <OnboardingLayout activeStep="assessment">
       <header className="mb-6">
-        <h1 className="text-3xl font-semibold">
+        <h1 className="text-2xl font-semibold sm:text-3xl">
           Competency & Skills Assessment
         </h1>
         <p className="mt-2 max-w-2xl text-base leading-6 text-[#434654]">
@@ -205,12 +205,12 @@ const CaregiverAssessment = () => {
         )}
 
         <section className="rounded-lg border border-[#003d9b]/20 bg-[#0052cc]/5 p-6 sm:p-8">
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 min-[420px]:flex-row">
             <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#dee9ff]">
               <BadgeCheck className="size-6 text-[#003d9b]" />
             </span>
             <div>
-              <h2 className="text-2xl font-semibold">Ready to Submit?</h2>
+              <h2 className="text-xl font-semibold sm:text-2xl">Ready to Submit?</h2>
               <p className="mt-2 text-sm leading-6 text-[#434654]">
                 After submission, your information will be locked while our
                 compliance team reviews it. You will see the latest status on
