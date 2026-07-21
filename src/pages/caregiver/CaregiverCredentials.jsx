@@ -98,8 +98,8 @@ const CaregiverCredentials = () => {
   return (
     <OnboardingLayout activeStep="credentials">
       <header className="mb-7">
-        <h1 className="text-3xl font-semibold">Verification & Credentials</h1>
-        <p className="mt-2 text-lg text-[#434654]">
+        <h1 className="text-2xl font-semibold sm:text-3xl">Verification & Credentials</h1>
+        <p className="mt-2 text-base text-[#434654] sm:text-lg">
           Upload your professional documents to verify your background and
           expertise.
         </p>
@@ -152,14 +152,14 @@ const CaregiverCredentials = () => {
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-2 flex items-center gap-2 text-2xl font-semibold">
+        <h2 className="mb-2 flex items-center gap-2 text-xl font-semibold sm:text-2xl">
           <BadgeCheck className="size-6 text-[#003d9b]" />
           Professional Licenses
         </h2>
         <p className="mb-6 text-sm text-[#434654]">
           Optional—upload only the licences you currently hold.
         </p>
-        <div className="grid gap-5 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {licenses.map(([name, detail, color]) => {
             const kind = `license${name}`;
             const displayed =
