@@ -95,12 +95,9 @@ const CaregiverPayments = () => {
   };
 
   return (
-    <div className="mx-auto max-w-[1020px] px-5 py-8 sm:px-8">
+    <div className="mx-auto max-w-[1020px] px-4 py-6 sm:px-8 sm:py-8">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Payments &amp; Wallet
-        </h1>
-        <p className="mt-1 text-[#4c5261]">
+        <p className="text-[#4c5261]">
           Manage your earnings, withdrawals, and financial documents.
         </p>
       </header>
@@ -111,18 +108,20 @@ const CaregiverPayments = () => {
         </div>
       )}
 
-      <section className="mt-8 grid gap-5 md:grid-cols-3">
-        <article className="rounded-xl bg-gradient-to-br from-[#1261da] to-[#0649ad] p-6 text-white shadow-lg shadow-blue-900/10">
-          <p className="text-sm uppercase tracking-[0.12em] text-blue-100">
+      <section className="mt-6 grid grid-cols-3 gap-2 md:mt-8 md:gap-5">
+        <article className="min-w-0 rounded-xl bg-gradient-to-br from-[#1261da] to-[#0649ad] p-2.5 text-white shadow-lg shadow-blue-900/10 min-[380px]:p-3 md:p-6">
+          <p className="text-[9px] uppercase leading-3 tracking-[0.06em] text-blue-100 min-[380px]:text-[10px] md:text-sm md:tracking-[0.12em]">
             Available Balance
           </p>
-          <b className="mt-2 block text-4xl sm:text-5xl">৳8,200</b>
+          <b className="mt-2 block text-lg leading-tight min-[380px]:text-xl md:text-5xl">৳8,200</b>
           <button
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-white py-3 font-semibold text-[#0649ad] shadow-sm transition hover:bg-blue-50"
+            className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg bg-white px-1 py-2 text-[10px] font-semibold text-[#0649ad] shadow-sm transition hover:bg-blue-50 min-[380px]:text-xs md:mt-6 md:gap-2 md:py-3 md:text-base"
             type="button"
             onClick={() => showNotice("Withdrawal request opened. Backend processing will be connected later.")}
           >
-            <WalletCards className="size-5" /> Withdraw Earnings
+            <WalletCards className="hidden size-4 min-[420px]:block md:size-5" />
+            <span className="md:hidden">Withdraw</span>
+            <span className="hidden md:inline">Withdraw Earnings</span>
           </button>
         </article>
 
@@ -130,19 +129,19 @@ const CaregiverPayments = () => {
           label="Weekly Earnings"
           value="৳4,500"
           icon={Banknote}
-          footer={<span className="rounded-full bg-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">↗ +12% vs last week</span>}
+          footer={<span className="rounded-full bg-emerald-200 px-1.5 py-1 text-[8px] font-semibold text-emerald-800 min-[380px]:text-[9px] md:px-3 md:text-xs">↗ +12% <span className="hidden md:inline">vs last week</span></span>}
         />
         <SummaryCard
           label="Monthly Projection"
           value="৳18,000"
           icon={TrendingUp}
-          footer={<span className="text-xs italic text-[#4c5261]">Based on current schedule</span>}
+          footer={<span className="text-[8px] italic leading-3 text-[#4c5261] min-[380px]:text-[9px] md:text-xs"><span className="md:hidden">Projected</span><span className="hidden md:inline">Based on current schedule</span></span>}
         />
       </section>
 
       <section className="mt-8 grid items-start gap-6 lg:grid-cols-[1fr_294px]">
         <article className="overflow-hidden rounded-xl border border-[#c5cad8] bg-white">
-          <header className="flex items-center border-b border-[#c5cad8] bg-[#edf3ff] px-6 py-5">
+          <header className="flex items-center border-b border-[#c5cad8] bg-[#edf3ff] px-4 py-4 sm:px-6 sm:py-5">
             <h2 className="text-xl font-semibold">Recent Transactions</h2>
             <button
               className="ml-auto text-xs font-semibold text-[#0649ad]"
@@ -155,7 +154,7 @@ const CaregiverPayments = () => {
           <div>
             {visibleTransactions.map((transaction) => (
               <div
-                className="flex items-center gap-4 border-b border-[#d7dbe7] px-6 py-5 last:border-b-0"
+                className="flex items-center gap-3 border-b border-[#d7dbe7] px-4 py-4 last:border-b-0 sm:gap-4 sm:px-6 sm:py-5"
                 key={`${transaction.title}-${transaction.date}`}
               >
                 <span
@@ -172,10 +171,10 @@ const CaregiverPayments = () => {
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <b className="block truncate">{transaction.title}</b>
+                  <b className="block text-sm sm:truncate sm:text-base">{transaction.title}</b>
                   <small className="text-[#4c5261]">{transaction.date}</small>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="shrink-0 text-right text-sm sm:text-base">
                   <span className={transaction.type === "withdrawal" ? "text-[#101c2d]" : "text-emerald-700"}>
                     {transaction.amount}
                   </span>
@@ -235,7 +234,7 @@ const CaregiverPayments = () => {
       </section>
 
       <section className="mt-8 overflow-hidden rounded-xl border border-[#c5cad8] bg-white">
-        <header className="flex flex-col gap-4 border-b border-[#c5cad8] bg-[#edf3ff] px-6 py-5 md:flex-row md:items-center">
+        <header className="flex flex-col gap-4 border-b border-[#c5cad8] bg-[#edf3ff] px-4 py-5 sm:px-6 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
             <span className="grid size-11 place-items-center rounded-lg bg-white text-[#0649ad] shadow-sm">
               <FolderArchive className="size-6" />
@@ -267,7 +266,7 @@ const CaregiverPayments = () => {
           </div>
         </header>
 
-        <div className="grid gap-4 p-6 md:grid-cols-2">
+        <div className="grid gap-4 p-4 sm:p-6 md:grid-cols-2">
           {visibleDocuments.map((document) => (
             <article
               className="flex items-center gap-4 rounded-xl border border-[#d7dbe7] p-4 transition hover:border-[#8aaee8] hover:bg-[#f9fbff]"
@@ -306,15 +305,15 @@ const CaregiverPayments = () => {
 };
 
 const SummaryCard = ({ label, value, icon: Icon, footer }) => (
-  <article className="rounded-xl border border-[#c5cad8] bg-white p-6">
+  <article className="min-w-0 rounded-xl border border-[#c5cad8] bg-white p-2.5 min-[380px]:p-3 md:p-6">
     <div className="flex items-start justify-between">
-      <p className="text-sm uppercase tracking-[0.1em] text-[#4c5261]">{label}</p>
-      <span className="grid size-9 place-items-center rounded-lg bg-blue-100 text-[#0649ad]">
-        <Icon className="size-5" />
+      <p className="text-[9px] uppercase leading-3 tracking-[0.04em] text-[#4c5261] min-[380px]:text-[10px] md:text-sm md:tracking-[0.1em]">{label}</p>
+      <span className="hidden size-8 shrink-0 place-items-center rounded-lg bg-blue-100 text-[#0649ad] min-[380px]:grid md:size-9">
+        <Icon className="size-4 md:size-5" />
       </span>
     </div>
-    <b className="mt-5 block text-4xl font-medium">{value}</b>
-    <div className="mt-5">{footer}</div>
+    <b className="mt-3 block break-words text-lg font-medium leading-tight min-[380px]:text-xl md:mt-5 md:text-4xl">{value}</b>
+    <div className="mt-3 md:mt-5">{footer}</div>
   </article>
 );
 
