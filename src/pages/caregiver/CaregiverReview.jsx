@@ -56,14 +56,14 @@ const CaregiverReview = () => {
   return (
     <OnboardingLayout activeStep="review">
       <header className="mb-6">
-        <h1 className="text-3xl font-semibold">Onboarding Status</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">Onboarding Status</h1>
         <p className="mt-2 text-sm text-[#434654]">Track the verification of your caregiver account.</p>
       </header>
 
       <OnboardingCard className={content.background}>
         <div className="py-5 text-center">
           <StatusIcon className={`mx-auto size-16 ${content.color}`} />
-          <h2 className="mt-5 text-3xl font-semibold">{content.title}</h2>
+          <h2 className="mt-5 text-2xl font-semibold sm:text-3xl">{content.title}</h2>
           <p className="mx-auto mt-3 max-w-2xl leading-7 text-[#434654]">{content.description}</p>
           <span className={`mt-5 inline-flex rounded-full bg-white px-4 py-2 text-sm font-bold ${content.color}`}>{progress}% complete</span>
           <div><button className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#003d9b] disabled:opacity-60" type="button" disabled={refreshing} onClick={refreshStatus}><RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Checking…" : "Refresh status"}</button></div>
@@ -89,7 +89,7 @@ const CaregiverReview = () => {
         <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#f0f3ff]"><Mail className="size-6 text-[#003d9b]" /></span>
         <div className="flex-1">
           <h2 className="font-semibold">We will notify you by email</h2>
-          <p className="mt-1 text-sm text-[#434654]">Updates will be sent to {user.email}. You can also return to this page anytime.</p>
+          <p className="mt-1 break-words text-sm text-[#434654]">Updates will be sent to {user.email}. You can also return to this page anytime.</p>
         </div>
         <Link className="secondary-action text-center" to="/">Return home</Link>
       </section>
