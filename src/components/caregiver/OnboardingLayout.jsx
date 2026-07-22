@@ -51,9 +51,9 @@ const OnboardingLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#f4f5f7] text-[#101c2d]">
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[#c3c6d6] bg-white px-5 shadow-sm sm:px-6">
+      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[#c3c6d6] bg-white px-4 shadow-sm sm:px-6">
         <Link to="/">
-          <img src={logoImage} alt="SwiftOpsBD" className="h-8 w-auto" />
+          <img src={logoImage} alt="SwiftOpsBD" className="h-7 w-auto max-w-40 sm:h-8" />
         </Link>
         <nav className="hidden items-center gap-7 text-sm text-[#434654] md:flex">
           <a href="#dashboard">Dashboard</a>
@@ -73,7 +73,7 @@ const OnboardingLayout = ({ children }) => {
       </header>
 
       <div className="mx-auto flex max-w-[1440px] items-stretch">
-        <aside className="hidden min-h-[calc(100vh-64px)] w-64 shrink-0 flex-col border-r border-[#c3c6d6] bg-[#f0f3ff] p-4 md:flex lg:w-[300px]">
+        <aside className="hidden min-h-[calc(100vh-64px)] w-64 shrink-0 flex-col overflow-y-auto border-r border-[#c3c6d6] bg-[#f0f3ff] p-4 md:flex lg:w-[300px]">
           <div className="pb-5">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#434654]">Onboarding progress</p>
             <h2 className="mt-1 text-xl font-semibold text-[#003d9b]">{progress}% Complete</h2>
@@ -134,8 +134,8 @@ const OnboardingLayout = ({ children }) => {
             </nav>
           </div>
 
-          <main className="mx-auto max-w-5xl p-5 sm:p-8 lg:p-12">{children}</main>
-          <footer className="flex flex-col gap-3 border-t border-[#c3c6d6] px-6 py-8 text-xs text-[#434654] sm:flex-row sm:items-center sm:justify-between">
+          <main className="mx-auto max-w-5xl p-4 sm:p-8 lg:p-12">{children}</main>
+          <footer className="flex flex-col gap-3 border-t border-[#c3c6d6] px-4 py-6 text-xs text-[#434654] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-8">
             <p>© 2026 SwiftOpsBD. Trusted Healthcare Solutions.</p>
             <nav className="flex flex-wrap gap-5">
               <a href="#privacy">Privacy Policy</a><a href="#terms">Terms of Service</a><a href="#hipaa">HIPAA Compliance</a><a href="#trust">Trust Center</a>
