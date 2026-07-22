@@ -3,6 +3,7 @@ import sarahImage from "../assets/caregiver-sarah.jpg";
 import allexusImage from "../assets/caregiver-allexus.jpg";
 import kellyImage from "../assets/caregiver-kelly.jpg";
 import { Link } from "react-router-dom";
+import useCmsContent from "../hooks/useCmsContent";
 
 const Icon = ({ name, className = "size-6" }) => {
   const paths = {
@@ -71,23 +72,26 @@ const steps = [
   ["review", "Read reviews", "No need to ask around, see what other local families have said about their experience."],
 ];
 
-const Home = () => (
+const Home = () => {
+  const { publishedContent } = useCmsContent();
+  const cms = publishedContent.home;
+  return (
   <>
     <section className="relative isolate flex min-h-[500px] items-center justify-center overflow-hidden bg-[#f0f3ff]">
       <img className="absolute inset-0 -z-20 size-full object-cover object-center" src={heroImage} alt="Family spending time with a caregiver" />
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-white via-white/40 to-white/10" />
       <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-5 py-20 text-center">
         <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-[-0.02em] text-[#101c2d] sm:text-5xl">
-          Connecting families with quality, local caregivers
+          {cms.headline}
         </h1>
         <form className="mt-5 flex w-full max-w-xl items-center rounded-full border border-[#c3c6d6] bg-white p-2 shadow-2xl" onSubmit={(event) => event.preventDefault()}>
           <label className="sr-only" htmlFor="postal-code">Enter Postal Code</label>
           <input id="postal-code" className="min-w-0 flex-1 bg-transparent px-5 py-3 text-base outline-none" placeholder="Enter Postal Code" />
           <button className="primary-button flex items-center gap-2" type="submit">
-            Search <Icon name="search" className="size-[18px]" />
+            {cms.primaryButton} <Icon name="search" className="size-[18px]" />
           </button>
         </form>
-        <p className="mt-6 text-xl font-semibold text-[#101c2d] sm:text-2xl">One membership for every season of life</p>
+        <p className="mt-6 text-xl font-semibold text-[#101c2d] sm:text-2xl">{cms.subheadline}</p>
       </div>
     </section>
 
@@ -181,6 +185,7 @@ const Home = () => (
       </div>
     </section>
   </>
-);
+  );
+};
 
 export default Home;

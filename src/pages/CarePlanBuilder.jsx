@@ -17,6 +17,7 @@ import {
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { caregivers } from "../data/findCareData";
+import useCmsContent from "../hooks/useCmsContent";
 
 const careTasks = [
   ["Medication Reminders", BriefcaseMedical],
@@ -28,6 +29,8 @@ const careTasks = [
 ];
 
 const CarePlanBuilder = () => {
+  const { publishedContent } = useCmsContent();
+  const cms = publishedContent["care-plan"];
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const caregiver =
@@ -104,9 +107,9 @@ const CarePlanBuilder = () => {
       <main className="mx-auto max-w-7xl p-5 sm:p-6">
         <section className="flex flex-col justify-between gap-5 rounded-xl border bg-white p-6 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-semibold">Care Plan Builder</h1>
+            <h1 className="text-3xl font-semibold">{cms.headline}</h1>
             <p className="text-[#4c5261]">
-              Configure your personalized home healthcare journey.
+              {cms.subheadline}
             </p>
           </div>
           <div className="flex gap-5 text-sm">
@@ -261,7 +264,7 @@ const CarePlanBuilder = () => {
                 type="button"
                 onClick={finalize}
               >
-                Finalize & Request <ArrowRight />
+                {cms.primaryButton} <ArrowRight />
               </button>
               <p className="pb-6 text-center text-xs">
                 <ShieldCheck className="inline size-4" /> Secure payment via

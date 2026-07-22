@@ -19,6 +19,7 @@ import childCareImage from "../assets/join-family.jpg";
 import resumeImage from "../assets/join-professional.jpg";
 import heroReference from "../assets/find-job-hero-reference.png";
 import safetyReference from "../assets/find-job-safety-reference.png";
+import useCmsContent from "../hooks/useCmsContent";
 
 const jobCategories = [
   { label: "Child Care", icon: Baby },
@@ -138,6 +139,8 @@ const JobPhonePreview = () => (
 );
 
 const FindJobs = () => {
+  const { publishedContent } = useCmsContent();
+  const cms = publishedContent["find-jobs"];
   const [openStep, setOpenStep] = useState(0);
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -146,12 +149,12 @@ const FindJobs = () => {
       <section className="mx-auto grid min-h-[730px] max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-2 lg:px-4">
         <div className="max-w-lg">
           <h1 className="text-5xl font-bold leading-[1.12] tracking-[-0.035em] text-[#0648aa] sm:text-6xl">
-            Find a job you&apos;ll love
+            {cms.headline}
           </h1>
           <p className="mt-8 text-lg leading-7 text-[#474c5d]">
-            Whether caregiving is your career or you&apos;re looking for part-time work, you&apos;ll find lots of opportunities to earn with SwiftOpsBD.
+            {cms.subheadline}
           </p>
-          <ProfessionalSignupLink className="mt-7">Get started now</ProfessionalSignupLink>
+          <ProfessionalSignupLink className="mt-7">{cms.primaryButton}</ProfessionalSignupLink>
         </div>
         <div
           className="min-h-[430px] overflow-hidden rounded-[70px] bg-cover bg-right shadow-2xl shadow-[#0648aa]/20 sm:min-h-[600px]"

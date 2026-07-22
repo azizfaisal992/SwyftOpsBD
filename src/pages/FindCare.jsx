@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import mapImage from "../assets/find-care-map.jpg";
 import { caregivers } from "../data/findCareData";
+import useCmsContent from "../hooks/useCmsContent";
 
 const filterChips = [
   {
@@ -82,6 +83,8 @@ const FindCareFooter = () => (
 );
 
 const FindCare = () => {
+  const { publishedContent } = useCmsContent();
+  const cms = publishedContent["find-care"];
   const [selectedId, setSelectedId] = useState(1);
   const [favorites, setFavorites] = useState([]);
   const [service, setService] = useState("Senior Care");
@@ -239,7 +242,7 @@ const FindCare = () => {
               type="submit"
             >
               <Search className="size-5" />
-              Find Care
+              {cms.primaryButton}
             </button>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
@@ -301,9 +304,9 @@ const FindCare = () => {
         <section className="lg:col-span-5">
           <div className="mb-4 flex items-center justify-between gap-4">
             <h1 className="text-xl font-semibold sm:text-2xl">
-              {visibleCaregivers.length || 0} Caregivers in Dhaka
+              {visibleCaregivers.length || 0} {cms.headline}
             </h1>
-            <span className="whitespace-nowrap text-xs text-[#737685]">
+            <span className="whitespace-nowrap text-xs text-[#737685]" title={cms.subheadline}>
               Sort by: Recommended
             </span>
           </div>

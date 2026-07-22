@@ -11,8 +11,11 @@ import {
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { caregivers } from "../data/findCareData";
+import useCmsContent from "../hooks/useCmsContent";
 
 const CareCheckout = () => {
+  const { publishedContent } = useCmsContent();
+  const cms = publishedContent["care-checkout"];
   const [params] = useSearchParams();
   const caregiver =
     caregivers.find((item) => item.id === Number(params.get("caregiver"))) ||
@@ -67,7 +70,8 @@ const CareCheckout = () => {
       </header>
       <main className="mx-auto grid max-w-7xl gap-8 p-6 lg:grid-cols-[1fr_390px]">
         <form className="rounded-xl border bg-white p-6" onSubmit={pay}>
-          <h1 className="text-lg">Select Payment Method</h1>
+          <h1 className="text-lg">{cms.headline}</h1>
+          <p className="mt-1 text-sm text-[#4c5261]">{cms.subheadline}</p>
           <div className="mt-6 rounded border bg-[#eef2ff] p-4 font-semibold text-[#0649ad]">
             Primary Secure Gateway
           </div>
@@ -193,7 +197,7 @@ const CareCheckout = () => {
               onClick={pay}
             >
               <LockKeyhole />
-              Pay ৳{estimate.total.toLocaleString()} Securely <ArrowRight />
+              {cms.primaryButton} — ৳{estimate.total.toLocaleString()} <ArrowRight />
             </button>
           </section>
           <section className="rounded-xl border border-emerald-700 bg-[#9df2c8] p-6 text-emerald-800">
