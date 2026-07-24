@@ -19,7 +19,8 @@ import {
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { adminAccount } from "../../data/adminPortalData";
-import { clearAdminSession } from "../../services/adminAuthService";
+import useAuth from "../../hooks/useAuth";
+import { logoutAdmin } from "../../services/adminAuthService";
 
 const navItems = [
   { label: "Overview Dashboard", icon: LayoutDashboard, to: "/admin/dashboard" },
@@ -61,13 +62,19 @@ const AdminPortalLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { claims, user } = useAuth();
   const title = pageTitles[location.pathname] ?? "Admin Panel";
   const usesPageHeader = ["/admin/messages", "/admin/documents", "/admin/disputes"].includes(location.pathname);
 
-  const logout = () => {
-    clearAdminSession();
+  const logout = async () => {
+    await logoutAdmin();
     navigate("/admin/login", { replace: true });
   };
+
+  const adminName = user?.displayName || user?.email || adminAccount.name;
+  const adminEmail = user?.email || adminAccount.email;
+  const adminRole = String(claims.role || adminAccount.role).replaceAll("_", " ");
+  const adminImage = user?.photoURL || adminAccount.image;
 
   return (
     <div className="min-h-screen bg-[#f4f7fc] text-[#111c2c]">
@@ -117,10 +124,10 @@ const AdminPortalLayout = () => {
 
         <div className="border-t border-white/10 p-4">
           <div className="flex items-center gap-3">
-            <img className="size-10 rounded-full object-cover" src={adminAccount.image} alt={adminAccount.name} />
+            <img className="size-10 rounded-full object-cover" src={adminImage} alt={adminName} />
             <div className="min-w-0">
-              <b className="block truncate text-sm">{adminAccount.name}</b>
-              <small className="block truncate text-slate-400">{adminAccount.email}</small>
+              <b className="block truncate text-sm">{adminName}</b>
+              <small className="block truncate text-slate-400">{adminEmail}</small>
             </div>
           </div>
           <button className="mt-4 w-full rounded-lg border border-white/15 px-3 py-2 text-left text-sm text-red-300 hover:bg-white/5" type="button" onClick={logout}>
@@ -142,10 +149,10 @@ const AdminPortalLayout = () => {
           <div className="ml-auto flex items-center gap-3 sm:gap-5">
             <button type="button" aria-label="Notifications"><Bell className="size-5" /></button>
             <div className="hidden border-l border-[#c9cfdd] pl-5 text-right md:block">
-              <b className="block text-sm">{adminAccount.name}</b>
-              <small className="text-[#606878]">{adminAccount.role}</small>
+              <b className="block text-sm">{adminName}</b>
+              <small className="capitalize text-[#606878]">{adminRole}</small>
             </div>
-            <img className="size-9 rounded-lg object-cover" src={adminAccount.image} alt={adminAccount.name} />
+            <img className="size-9 rounded-lg object-cover" src={adminImage} alt={adminName} />
           </div>
         </header>
         <main><Outlet /></main>
