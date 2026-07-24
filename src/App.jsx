@@ -3,7 +3,7 @@ import Footer from "./layout/footer";
 import Header from "./layout/header";
 import Authentication from "./pages/Authentication";
 import CaregiverOnboardingRoute from "./components/caregiver/CaregiverOnboardingRoute";
-// import ClientOnboardingRoute from "./components/client/ClientOnboardingRoute";
+import ClientOnboardingRoute from "./components/client/ClientOnboardingRoute";
 import CaregiverAssessment from "./pages/caregiver/CaregiverAssessment";
 import CaregiverCredentials from "./pages/caregiver/CaregiverCredentials";
 import CaregiverProfileSetup from "./pages/caregiver/CaregiverProfileSetup";
@@ -12,19 +12,19 @@ import Home from "./pages/Home";
 import FindCare from "./pages/FindCare";
 import FindJobs from "./pages/FindJobs";
 import JoinNow from "./pages/JoinNow";
-// import ClientContactSetup from "./pages/client/ClientContactSetup";
-// import ClientProfileSetup from "./pages/client/ClientProfileSetup";
-// import ClientVerification from "./pages/client/ClientVerification";
+import ClientContactSetup from "./pages/client/ClientContactSetup";
+import ClientProfileSetup from "./pages/client/ClientProfileSetup";
+import ClientVerification from "./pages/client/ClientVerification";
 import CareCheckout from "./pages/CareCheckout";
 import CarePlanBuilder from "./pages/CarePlanBuilder";
-// import ClientPortalLayout from "./components/client/portal/ClientPortalLayout";
-// import ClientPortalRoute from "./components/client/portal/ClientPortalRoute";
-// import ClientAttendance from "./pages/client/portal/ClientAttendance";
-// import ClientCaregiverVerification from "./pages/client/portal/ClientCaregiverVerification";
-// import ClientDashboard from "./pages/client/portal/ClientDashboard";
-// import ClientMedicationUpload from "./pages/client/portal/ClientMedicationUpload";
-// import ClientMessages from "./pages/client/portal/ClientMessages";
-// import ClientPayments from "./pages/client/portal/ClientPayments";
+import ClientPortalLayout from "./components/client/portal/ClientPortalLayout";
+import ClientPortalRoute from "./components/client/portal/ClientPortalRoute";
+import ClientAttendance from "./pages/client/portal/ClientAttendance";
+import ClientCaregiverVerification from "./pages/client/portal/ClientCaregiverVerification";
+import ClientDashboard from "./pages/client/portal/ClientDashboard";
+import ClientMedicationUpload from "./pages/client/portal/ClientMedicationUpload";
+import ClientMessages from "./pages/client/portal/ClientMessages";
+import ClientPayments from "./pages/client/portal/ClientPayments";
 import CaregiverPortalLayout from "./components/caregiver/portal/CaregiverPortalLayout";
 import CaregiverPortalRoute from "./components/caregiver/portal/CaregiverPortalRoute";
 import CaregiverActiveVisit from "./pages/caregiver/portal/CaregiverActiveVisit";
@@ -108,12 +108,12 @@ const App = () => (
         <Route path="/admin/users" element={<AdminUsers />} />
       </Route>
     </Route>
-    {/* <Route element={<ClientOnboardingRoute />}>
+    <Route element={<ClientOnboardingRoute />}>
       <Route path="/client/profile-setup" element={<ClientProfileSetup />} />
       <Route path="/client/contact-setup" element={<ClientContactSetup />} />
       <Route path="/client/verification" element={<ClientVerification />} />
-    </Route> */}
-    {/* <Route element={<ClientPortalRoute />}>
+    </Route>
+    <Route element={<ClientPortalRoute />}>
       <Route element={<ClientPortalLayout />}>
         <Route path="/client/dashboard" element={<ClientDashboard />} />
         <Route path="/client/medications" element={<ClientMedicationUpload />} />
@@ -122,7 +122,7 @@ const App = () => (
         <Route path="/client/payments" element={<ClientPayments />} />
         <Route path="/client/messages" element={<ClientMessages />} />
       </Route>
-    </Route> */}
+    </Route>
     <Route element={<CaregiverOnboardingRoute />}>
       <Route path="/caregiver/profile-setup" element={<CaregiverProfileSetup />} />
       <Route path="/caregiver/credentials" element={<CaregiverCredentials />} />
