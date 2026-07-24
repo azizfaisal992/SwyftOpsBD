@@ -284,3 +284,25 @@
     color: #4c5261;
   }
 }
+
+@media (max-width: 639px) {
+  .onboarding-action,
+  .secondary-action {
+    width: 100%;
+    text-align: center;
+  }
+
+  .assessment-option {
+    align-items: flex-start;
+    line-height: 1.35;
+  }
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
