@@ -5,7 +5,40 @@ import useAuth from "../../hooks/useAuth";
 import {
   hasAdminAccess,
   loginAdmin,
+  loginAdminWithGoogle,
+  resetAdminPassword,
 } from "../../services/adminAuthService";
+
+const getAdminLoginError = (error) => {
+  const messages = {
+    "auth/admin-access-required":
+      "This Firebase account is signed in but does not have administrator access.",
+    "auth/invalid-credential":
+      "The email or password is incorrect. Reset the Firebase Authentication password if you do not know it.",
+    "auth/invalid-email": "Enter a valid administrator email address.",
+    "auth/user-disabled":
+      "This administrator account is disabled in Firebase Authentication.",
+    "auth/too-many-requests":
+      "Firebase temporarily blocked login attempts. Wait a few minutes or reset the password.",
+    "auth/network-request-failed":
+      "Firebase could not be reached. Check your internet connection and try again.",
+    "auth/unauthorized-domain":
+      "This website domain is not authorized in Firebase Authentication.",
+    "auth/operation-not-allowed":
+      "Email/Password sign-in is not enabled in Firebase Authentication.",
+    "auth/invalid-api-key":
+      "The frontend Firebase API key is missing or invalid.",
+    "auth/popup-blocked":
+      "The browser blocked the Google sign-in window. Allow pop-ups and try again.",
+    "auth/popup-closed-by-user":
+      "Google sign-in was cancelled before it finished.",
+  };
+
+  return (
+    messages[error?.code] ||
+    "Admin sign-in failed. Check the Firebase Authentication account and try again."
+  );
+};
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -15,7 +48,10 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(location.state?.error || "");
+  const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   if (!loading && user && hasAdminAccess(claims)) {
     return <Navigate to="/admin/dashboard" replace />;
@@ -23,26 +59,56 @@ const AdminLogin = () => {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!email.trim() || password.length < 8) {
-      setError(
-        "Enter your administrator email and password.",
-      );
+    if (!email.trim() || !password) {
+      setError("Enter your administrator email and password.");
       return;
     }
 
     setSubmitting(true);
     setError("");
+    setNotice("");
     try {
       await loginAdmin({ email, password });
       navigate(location.state?.from || "/admin/dashboard", { replace: true });
     } catch (loginError) {
-      setError(
-        loginError.code === "auth/admin-access-required"
-          ? loginError.message
-          : "Admin sign-in failed. Check your credentials and authorization.",
-      );
+      setError(getAdminLoginError(loginError));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const sendReset = async () => {
+    if (!email.trim()) {
+      setError("Enter the administrator email before requesting a password reset.");
+      return;
+    }
+
+    setSendingReset(true);
+    setError("");
+    setNotice("");
+    try {
+      await resetAdminPassword(email);
+      setNotice(
+        "If this Firebase account can receive password resets, an email has been sent.",
+      );
+    } catch (resetError) {
+      setError(getAdminLoginError(resetError));
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setGoogleSubmitting(true);
+    setError("");
+    setNotice("");
+    try {
+      await loginAdminWithGoogle();
+      navigate(location.state?.from || "/admin/dashboard", { replace: true });
+    } catch (loginError) {
+      setError(getAdminLoginError(loginError));
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -96,6 +162,22 @@ const AdminLogin = () => {
           </p>
 
           <form className="mt-8 space-y-5" onSubmit={submit}>
+            <button
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#c9cfdd] bg-white px-5 py-3.5 font-semibold text-[#182235] hover:border-[#0755d3] hover:bg-blue-50"
+              type="button"
+              disabled={googleSubmitting}
+              onClick={signInWithGoogle}
+            >
+              <span className="text-xl font-bold text-[#4285f4]">G</span>
+              {googleSubmitting
+                ? "Verifying Google account..."
+                : "Continue with Google"}
+            </button>
+            <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-[#7b8494]">
+              <span className="h-px flex-1 bg-[#d9deea]" />
+              or use email and password
+              <span className="h-px flex-1 bg-[#d9deea]" />
+            </div>
             <label className="block text-sm font-semibold">
               Admin email
               <input
@@ -136,6 +218,21 @@ const AdminLogin = () => {
                 {error}
               </p>
             )}
+            {notice && (
+              <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {notice}
+              </p>
+            )}
+            <button
+              className="text-sm font-semibold text-[#0755d3] hover:text-[#0649ad]"
+              type="button"
+              disabled={sendingReset}
+              onClick={sendReset}
+            >
+              {sendingReset
+                ? "Sending password reset..."
+                : "Forgot password? Send reset email"}
+            </button>
             <button
               className="w-full rounded-xl bg-[#0755d3] px-5 py-3.5 font-semibold text-white shadow-lg shadow-blue-900/15 hover:bg-[#0649ad]"
               type="submit"
