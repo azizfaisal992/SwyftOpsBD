@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import caregiverImage from "../assets/caregiver-sarah.jpg";
 import childCareImage from "../assets/join-family.jpg";
@@ -113,7 +113,12 @@ const ProfessionalSignupLink = ({ children, className = "" }) => (
 );
 
 const JobPhonePreview = () => (
-  <div className="mx-auto w-[288px] rounded-[48px] border-[12px] border-[#142036] bg-white p-4 shadow-2xl shadow-slate-900/20">
+  <div className="relative mx-auto w-[340px] max-w-full pb-12">
+    <div
+      className="absolute bottom-2 left-1/2 h-12 w-[78%] -translate-x-1/2 rounded-[50%] bg-[#142036]/25 blur-2xl"
+      aria-hidden="true"
+    />
+    <div className="relative mx-auto w-[288px] rounded-[48px] border-[12px] border-[#142036] bg-white p-4 shadow-[0_28px_60px_-20px_rgba(20,32,54,0.45)]">
     <div className="mb-5 flex items-center justify-between text-xs font-semibold">
       <span>9:41</span><span className="text-base">Job Details</span><span>•••</span>
     </div>
@@ -134,7 +139,8 @@ const JobPhonePreview = () => (
       <p className="mt-2 text-xs">Golden Retriever Walking</p>
       <p className="text-[10px] text-slate-500">0.8 miles away</p>
     </article>
-    <div className="h-40" />
+      <div className="h-40" />
+    </div>
   </div>
 );
 
@@ -143,11 +149,45 @@ const FindJobs = () => {
   const cms = publishedContent["find-jobs"];
   const [openStep, setOpenStep] = useState(0);
   const [openFaq, setOpenFaq] = useState(null);
+  const pageRef = useRef(null);
+
+  useEffect(() => {
+    const elements = pageRef.current?.querySelectorAll(
+      "[data-find-job-reveal]",
+    );
+    if (!elements?.length) return undefined;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      elements.forEach((element) => element.classList.add("is-visible"));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.14, rootMargin: "0px 0px -7% 0px" },
+    );
+
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <main className="overflow-hidden bg-[#f8f9fb] text-[#111c2f]">
+    <main
+      className="overflow-hidden bg-[#f8f9fb] text-[#111c2f]"
+      ref={pageRef}
+    >
       <section className="mx-auto grid min-h-[730px] max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-2 lg:px-4">
-        <div className="max-w-lg">
+        <div
+          className="find-job-reveal max-w-lg"
+          data-find-job-reveal
+        >
           <h1 className="text-5xl font-bold leading-[1.12] tracking-[-0.035em] text-[#0648aa] sm:text-6xl">
             {cms.headline}
           </h1>
@@ -157,21 +197,30 @@ const FindJobs = () => {
           <ProfessionalSignupLink className="mt-7">{cms.primaryButton}</ProfessionalSignupLink>
         </div>
         <div
-          className="min-h-[430px] overflow-hidden rounded-[70px] bg-cover bg-right shadow-2xl shadow-[#0648aa]/20 sm:min-h-[600px]"
+          className="find-job-hero find-job-reveal min-h-[430px] overflow-hidden rounded-[70px] bg-cover bg-right shadow-2xl shadow-[#0648aa]/20 sm:min-h-[600px]"
+          data-find-job-reveal
           style={{ backgroundImage: `url(${heroReference})`, backgroundSize: "200% 100%", backgroundPosition: "right center" }}
           role="img"
           aria-label="Professional caregiver supporting a client at home"
         />
       </section>
 
-      <section className="mx-auto max-w-[1248px] rounded-[48px] border border-[#c3cbe0] bg-[#f0f3ff] px-6 py-16 text-center sm:px-12">
+      <section
+        className="find-job-reveal mx-auto max-w-[1248px] rounded-[48px] border border-[#c3cbe0] bg-[#f0f3ff] px-6 py-16 text-center sm:px-12"
+        data-find-job-reveal
+      >
         <h2 className="text-3xl font-bold tracking-tight">One platform, so many ways to earn</h2>
         <p className="mx-auto mt-4 max-w-2xl leading-6 text-[#474c5d]">
           More than 2 million families have turned to SwiftOpsBD. Maximize your earning potential with more jobs, across more categories—all on a single platform.
         </p>
         <div className="mt-12 grid grid-cols-2 gap-8 md:grid-cols-5">
-          {jobCategories.map(({ label, icon: Icon }) => (
-            <div className="flex flex-col items-center gap-4" key={label}>
+          {jobCategories.map(({ label, icon: Icon }, index) => (
+            <div
+              className="find-job-category find-job-reveal flex flex-col items-center gap-4"
+              data-find-job-reveal
+              key={label}
+              style={{ transitionDelay: `${index * 70}ms` }}
+            >
               <span className="grid size-20 place-items-center rounded-xl bg-[#0648aa] text-white"><Icon className="size-8" /></span>
               <span>{label}</span>
             </div>
@@ -180,12 +229,20 @@ const FindJobs = () => {
         <ProfessionalSignupLink className="mt-14 !px-10">Find a job</ProfessionalSignupLink>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-24">
+      <section
+        className="find-job-reveal mx-auto max-w-7xl px-6 py-24"
+        data-find-job-reveal
+      >
         <h2 className="text-3xl font-bold tracking-tight">Discover thousands of new jobs daily</h2>
         <p className="mt-3 text-[#474c5d]">With a new job posting added every 10 seconds, you&apos;ll be sure to find something that&apos;s right for you.</p>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {benefits.map(({ title, description, icon: Icon }) => (
-            <article className="rounded-3xl border border-[#c3cbe0] bg-white p-8 shadow-sm" key={title}>
+          {benefits.map(({ title, description, icon: Icon }, index) => (
+            <article
+              className="find-job-card find-job-reveal rounded-3xl border border-[#c3cbe0] bg-white p-8 shadow-sm"
+              data-find-job-reveal
+              key={title}
+              style={{ transitionDelay: `${index * 90}ms` }}
+            >
               <Icon className="size-9 text-[#0648aa]" />
               <h3 className="mt-5 text-2xl font-bold">{title}</h3>
               <p className="mt-4 leading-6 text-[#474c5d]">{description}</p>
@@ -195,7 +252,10 @@ const FindJobs = () => {
       </section>
 
       <section className="bg-white px-6 py-24">
-        <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
+        <div
+          className="find-job-reveal mx-auto flex max-w-4xl flex-col items-center text-center"
+          data-find-job-reveal
+        >
           <blockquote className="text-3xl font-semibold leading-relaxed tracking-tight sm:text-4xl">
             “SwiftOpsBD is such a wonderful app for making extra money. From senior care and tutoring to pet sitting, there are so many meaningful opportunities.”
           </blockquote>
@@ -207,7 +267,7 @@ const FindJobs = () => {
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-16 px-6 py-24 lg:grid-cols-[1fr_0.85fr] lg:items-center">
-        <div>
+        <div className="find-job-reveal" data-find-job-reveal>
           <h2 className="text-3xl font-bold tracking-tight">Get started with SwiftOpsBD</h2>
           <p className="mt-3 text-[#474c5d]">Get started enrolling now by following these steps:</p>
           <div className="mt-12 space-y-4">
@@ -220,17 +280,25 @@ const FindJobs = () => {
                     <span className="flex-1 text-lg font-medium">{step.title}</span>
                     <ChevronDown className={`size-5 transition ${isOpen ? "rotate-180" : ""}`} />
                   </button>
-                  {isOpen && <p className="px-6 pb-6 pl-[72px] leading-6 text-[#474c5d]">{step.description}</p>}
+                  {isOpen && <p className="find-job-expand px-6 pb-6 pl-[72px] leading-6 text-[#474c5d]">{step.description}</p>}
                 </article>
               );
             })}
           </div>
           <ProfessionalSignupLink className="mt-12">Get started now</ProfessionalSignupLink>
         </div>
-        <JobPhonePreview />
+        <div
+          className="find-job-phone find-job-reveal"
+          data-find-job-reveal
+        >
+          <JobPhonePreview />
+        </div>
       </section>
 
-      <section className="mx-auto grid max-w-[1232px] overflow-hidden rounded-[48px] bg-[#0648aa] text-white shadow-2xl shadow-slate-900/10 lg:grid-cols-2">
+      <section
+        className="find-job-reveal mx-auto grid max-w-[1232px] overflow-hidden rounded-[48px] bg-[#0648aa] text-white shadow-2xl shadow-slate-900/10 lg:grid-cols-2"
+        data-find-job-reveal
+      >
         <div
           className="min-h-[420px] bg-cover"
           style={{ backgroundImage: `url(${safetyReference})`, backgroundSize: "200% 100%", backgroundPosition: "left center" }}
@@ -252,8 +320,13 @@ const FindJobs = () => {
       <section className="mx-auto max-w-7xl px-6 py-24" id="resources">
         <h2 className="text-center text-3xl font-bold tracking-tight">Helpful Resources</h2>
         <div className="mt-16 grid gap-6 md:grid-cols-3">
-          {resources.map((resource) => (
-            <article className="overflow-hidden rounded-3xl border border-[#c3cbe0] bg-white shadow-sm" key={resource.title}>
+          {resources.map((resource, index) => (
+            <article
+              className="find-job-card find-job-reveal overflow-hidden rounded-3xl border border-[#c3cbe0] bg-white shadow-sm"
+              data-find-job-reveal
+              key={resource.title}
+              style={{ transitionDelay: `${index * 90}ms` }}
+            >
               <img className="h-56 w-full object-cover" src={resource.image} alt="" />
               <div className="p-8">
                 <h3 className="text-lg font-medium">{resource.title}</h3>
@@ -276,14 +349,17 @@ const FindJobs = () => {
                 <button className="flex w-full items-center gap-4 py-7 text-left text-lg font-medium" type="button" aria-expanded={isOpen} onClick={() => setOpenFaq(isOpen ? null : index)}>
                   <span className="flex-1">{faq.question}</span><ChevronDown className={`size-5 transition ${isOpen ? "rotate-180" : ""}`} />
                 </button>
-                {isOpen && <p className="pb-7 leading-7 text-[#474c5d]">{faq.answer}</p>}
+                {isOpen && <p className="find-job-expand pb-7 leading-7 text-[#474c5d]">{faq.answer}</p>}
               </article>
             );
           })}
         </div>
       </section>
 
-      <section className="mx-auto mb-20 max-w-[1248px] rounded-[64px] bg-[#a7edf4] px-6 py-24 text-center">
+      <section
+        className="find-job-reveal mx-auto mb-20 max-w-[1248px] rounded-[64px] bg-[#a7edf4] px-6 py-24 text-center"
+        data-find-job-reveal
+      >
         <h2 className="text-5xl font-bold tracking-tight text-[#0648aa]">Ready to get started?</h2>
         <p className="mx-auto mt-7 max-w-xl text-lg leading-7 text-[#474c5d]">Join SwiftOpsBD today to start earning with meaningful work you&apos;ll love and make a difference in your community.</p>
         <ProfessionalSignupLink className="mt-10">Find jobs now</ProfessionalSignupLink>

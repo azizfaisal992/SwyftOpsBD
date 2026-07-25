@@ -285,6 +285,112 @@
   }
 }
 
+.find-job-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.find-job-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.find-job-hero.is-visible {
+  animation: find-job-hero-float 7s ease-in-out 1000ms infinite;
+}
+
+.find-job-phone.is-visible {
+  animation: find-job-phone-float 5s ease-in-out 700ms infinite;
+}
+
+.find-job-category span {
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+.find-job-category:hover span {
+  transform: translateY(-7px) rotate(-2deg);
+  background-color: #0755d3;
+  box-shadow: 0 14px 28px rgb(6 72 170 / 22%);
+}
+
+.find-job-card {
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 240ms ease,
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.find-job-card:hover {
+  transform: translateY(-8px);
+  border-color: #8ca9df;
+  box-shadow: 0 18px 36px rgb(17 28 47 / 10%);
+}
+
+.find-job-card img {
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.find-job-card:hover img {
+  transform: scale(1.045);
+}
+
+.find-job-expand {
+  transform-origin: top;
+  animation: find-job-expand 220ms ease-out both;
+}
+
+@keyframes find-job-hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes find-job-phone-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.5deg);
+  }
+}
+
+@keyframes find-job-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .find-job-reveal,
+  .find-job-reveal.is-visible,
+  .find-job-hero.is-visible,
+  .find-job-phone.is-visible,
+  .find-job-expand {
+    opacity: 1;
+    transform: none;
+    animation: none;
+    transition: none;
+  }
+}
+
 @media (max-width: 639px) {
   .onboarding-action,
   .secondary-action {
