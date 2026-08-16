@@ -3,7 +3,7 @@ import CaregiverOnboardingProvider from "../../context/CaregiverOnboardingProvid
 import useAuth from "../../hooks/useAuth";
 
 const CaregiverOnboardingRoute = () => {
-  const { user, loading } = useAuth();
+  const { account, accountError, user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -12,6 +12,12 @@ const CaregiverOnboardingRoute = () => {
 
   if (!user) {
     return <Navigate replace to="/login?type=professional" state={{ from: location.pathname }} />;
+  }
+  if (accountError || !account) {
+    return <Navigate replace to="/login?type=professional" state={{ from: location.pathname, error: accountError }} />;
+  }
+  if (!["unassigned", "caregiver"].includes(account.role)) {
+    return <Navigate replace to="/client/profile-setup" />;
   }
 
   return (

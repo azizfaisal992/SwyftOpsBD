@@ -3,7 +3,7 @@ import useAuth from "../../hooks/useAuth";
 import { hasAdminAccess } from "../../services/adminAuthService";
 
 const AdminPortalRoute = () => {
-  const { claims, loading, user } = useAuth();
+  const { account, claims, loading, user } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -14,7 +14,10 @@ const AdminPortalRoute = () => {
     );
   }
 
-  if (!user || !hasAdminAccess(claims)) {
+  const hasMatchingBackendRole =
+    account?.role === claims.role && account?.status === "active";
+
+  if (!user || !hasAdminAccess(claims) || !hasMatchingBackendRole) {
     return (
       <Navigate
         to="/admin/login"
