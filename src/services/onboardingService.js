@@ -1,25 +1,4 @@
-import { auth } from "../lib/firebase";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-
-const apiRequest = async (path, options = {}) => {
-  const user = auth.currentUser;
-  if (!user) throw new Error("Sign in before accessing caregiver onboarding.");
-
-  const token = await user.getIdToken();
-  const headers = new Headers(options.headers);
-  headers.set("Authorization", `Bearer ${token}`);
-  if (options.body && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
-
-  const response = await fetch(`${API_BASE_URL}/api${path}`, { ...options, headers });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(payload.error || "The onboarding API request failed.");
-    error.status = response.status;
-    throw error;
-  }
-  return payload.data;
-};
+import { apiRequest } from "./apiClient";
 
 export const calculateOnboardingProgress = (record) => record?.progress || 0;
 

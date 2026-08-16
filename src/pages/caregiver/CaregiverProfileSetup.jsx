@@ -13,6 +13,15 @@ const Field = ({ label, ...props }) => (
   </label>
 );
 
+const careServices = [
+  "Senior Care",
+  "Child Care",
+  "Home Nursing",
+  "Companion Care",
+  "Physiotherapy",
+  "Dementia Care",
+];
+
 const CaregiverProfileSetup = () => {
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -36,6 +45,8 @@ const CaregiverProfileSetup = () => {
       state: formData.get("state"),
       zipCode: formData.get("zipCode"),
       serviceRadius: formData.get("serviceRadius"),
+      services: formData.getAll("services"),
+      hourlyRate: formData.get("hourlyRate"),
     };
   };
 
@@ -60,6 +71,10 @@ const CaregiverProfileSetup = () => {
 
   const continueToCredentials = async (event) => {
     event.preventDefault();
+    if (!collectProfile().services.length) {
+      setError("Select at least one service you can provide.");
+      return;
+    }
     if (!photoFile && !record.profile.photo) {
       setError("Upload a professional photo before continuing.");
       return;
@@ -121,6 +136,41 @@ const CaregiverProfileSetup = () => {
             <label><span className="mb-2 block text-sm font-semibold text-[#434654]">Gender</span><select className="onboarding-input" name="gender" defaultValue={record.profile.gender} required><option value="" disabled>Select gender</option><option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option></select></label>
             <Field label="Phone Number" name="phone" defaultValue={record.profile.phone} type="tel" placeholder="+880 1XXX-XXXXXX" required />
             <div className="sm:col-span-2"><Field label="Email Address" name="email" defaultValue={record.profile.email || user.email || ""} type="email" placeholder="sarah.jenkins@example.com" required /></div>
+          </div>
+        </OnboardingCard>
+
+        <OnboardingCard title="Services & Hourly Rate" icon={UserRound}>
+          <p className="mb-4 text-sm text-[#434654]">
+            Select every service you are qualified to provide.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {careServices.map((service) => (
+              <label
+                className="flex items-center gap-3 rounded-lg border border-[#c3c6d6] p-3 text-sm font-medium"
+                key={service}
+              >
+                <input
+                  className="size-4 accent-[#003d9b]"
+                  type="checkbox"
+                  name="services"
+                  value={service}
+                  defaultChecked={record.profile.services?.includes(service)}
+                />
+                {service}
+              </label>
+            ))}
+          </div>
+          <div className="mt-5 max-w-sm">
+            <Field
+              label="Expected Hourly Rate (BDT)"
+              name="hourlyRate"
+              type="number"
+              min="1"
+              step="1"
+              defaultValue={record.profile.hourlyRate}
+              placeholder="e.g. 850"
+              required
+            />
           </div>
         </OnboardingCard>
 

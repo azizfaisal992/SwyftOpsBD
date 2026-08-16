@@ -28,6 +28,13 @@ const statusContent = {
     background: "bg-emerald-50",
     icon: CheckCircle2,
   },
+  rejected: {
+    title: "Your application was not approved",
+    description: "The compliance team could not verify this submission. Review the administrator feedback or contact support for assistance.",
+    color: "text-red-700",
+    background: "bg-red-50",
+    icon: FileCheck2,
+  },
 };
 
 const CaregiverReview = () => {
@@ -65,6 +72,12 @@ const CaregiverReview = () => {
           <StatusIcon className={`mx-auto size-16 ${content.color}`} />
           <h2 className="mt-5 text-2xl font-semibold sm:text-3xl">{content.title}</h2>
           <p className="mx-auto mt-3 max-w-2xl leading-7 text-[#434654]">{content.description}</p>
+          {record.reviewFeedback && (
+            <p className="mx-auto mt-4 max-w-2xl rounded-lg border border-current bg-white/80 px-4 py-3 text-left text-sm">
+              <strong className="block">Administrator feedback</strong>
+              <span className="mt-1 block text-[#434654]">{record.reviewFeedback}</span>
+            </p>
+          )}
           <span className={`mt-5 inline-flex rounded-full bg-white px-4 py-2 text-sm font-bold ${content.color}`}>{progress}% complete</span>
           <div><button className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#003d9b] disabled:opacity-60" type="button" disabled={refreshing} onClick={refreshStatus}><RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Checking…" : "Refresh status"}</button></div>
           {refreshError && <p className="mt-3 text-sm text-red-700" role="alert">{refreshError}</p>}
