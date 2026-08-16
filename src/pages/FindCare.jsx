@@ -13,11 +13,19 @@ import {
   ShieldCheck,
   Star,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import mapImage from "../assets/find-care-map.jpg";
-import { caregivers } from "../data/findCareData";
+import {
+  DHAKA_POSTAL_AREAS,
+  normalizePostalCode,
+  postalLocationLabel,
+} from "../data/dhakaPostalCodes";
 import useCmsContent from "../hooks/useCmsContent";
+import {
+  listPublicCaregivers,
+  publicCaregiverPhotoUrl,
+} from "../services/publicDirectoryService";
 
 const filterChips = [
   {
@@ -36,7 +44,7 @@ const filterChips = [
   {
     id: "rate",
     label: "Hourly Rate",
-    options: ["Any Rate", "Up to ৳700", "Up to ৳850", "Up to ৳1,000"],
+    options: ["Any Rate", "Up to $700", "Up to $850", "Up to $1,000"],
   },
   {
     id: "gender",
@@ -85,14 +93,24 @@ const FindCareFooter = () => (
 const FindCare = () => {
   const { publishedContent } = useCmsContent();
   const cms = publishedContent["find-care"];
-  const [selectedId, setSelectedId] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPostalCode = normalizePostalCode(
+    searchParams.get("postalCode"),
+  );
+  const initialLocation =
+    postalLocationLabel(initialPostalCode) || "Gulshan, Dhaka 1212";
+  const [caregivers, setCaregivers] = useState([]);
+  const [directoryLoading, setDirectoryLoading] = useState(true);
+  const [directoryError, setDirectoryError] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [service, setService] = useState("Senior Care");
-  const [location, setLocation] = useState("Gulshan, Dhaka 1212");
+  const [location, setLocation] = useState(initialLocation);
   const [maxRate, setMaxRate] = useState("");
   const [search, setSearch] = useState({
     service: "",
-    location: "",
+    location: initialPostalCode ? initialLocation : "",
+    postalCode: initialPostalCode,
     maxRate: "",
   });
   const [chipFilters, setChipFilters] = useState({
@@ -102,6 +120,38 @@ const FindCare = () => {
     experience: "Any Experience",
     rating: "Any Rating",
   });
+
+  useEffect(() => {
+    let active = true;
+    const loadDirectory = () =>
+      listPublicCaregivers()
+        .then((records) => {
+          if (!active) return;
+          setCaregivers(
+            records.map((caregiver) => ({
+              ...caregiver,
+              image: caregiver.hasPhoto
+                ? publicCaregiverPhotoUrl(caregiver.id)
+                : "",
+              tags: caregiver.tags || [],
+              certifications: caregiver.certifications || [],
+            })),
+          );
+          setDirectoryError("");
+        })
+        .catch((error) => {
+          if (active) setDirectoryError(error.message);
+        })
+        .finally(() => {
+          if (active) setDirectoryLoading(false);
+        });
+    loadDirectory();
+    window.addEventListener("focus", loadDirectory);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", loadDirectory);
+    };
+  }, []);
 
   const visibleCaregivers = useMemo(
     () =>
@@ -114,10 +164,13 @@ const FindCare = () => {
           caregiver.role.toLowerCase().includes(search.service.toLowerCase());
         const matchesLocation =
           !search.location ||
+          Boolean(search.postalCode) ||
           caregiver.location
             .toLowerCase()
-            .includes(search.location.split(",")[0].toLowerCase()) ||
-          search.location.toLowerCase().includes("dhaka");
+            .includes(search.location.split(",")[0].toLowerCase());
+        const matchesPostalCode =
+          !search.postalCode ||
+          String(caregiver.postalCode || "") === search.postalCode;
         const matchesRate =
           !search.maxRate || caregiver.rate <= Number(search.maxRate);
         const matchesChipService =
@@ -146,6 +199,7 @@ const FindCare = () => {
         return (
           matchesService &&
           matchesLocation &&
+          matchesPostalCode &&
           matchesRate &&
           matchesChipService &&
           matchesChipRate &&
@@ -154,7 +208,7 @@ const FindCare = () => {
           matchesRating
         );
       }),
-    [chipFilters, search],
+    [caregivers, chipFilters, search],
   );
 
   const filtersAreActive = Object.entries(chipFilters).some(
@@ -180,11 +234,26 @@ const FindCare = () => {
   const selected =
     caregivers.find((caregiver) => caregiver.id === selectedId) ||
     visibleCaregivers[0] ||
-    caregivers[0];
+    null;
 
   const submitSearch = (event) => {
     event.preventDefault();
-    setSearch({ service, location, maxRate });
+    const enteredPostalCode = normalizePostalCode(location);
+    const supportedPostalCode = DHAKA_POSTAL_AREAS[enteredPostalCode]
+      ? enteredPostalCode
+      : "";
+    const canonicalLocation =
+      postalLocationLabel(supportedPostalCode) || location.trim();
+    setLocation(canonicalLocation);
+    setSearch({
+      service,
+      location: canonicalLocation,
+      postalCode: supportedPostalCode,
+      maxRate,
+    });
+    const nextParams = new URLSearchParams();
+    if (supportedPostalCode) nextParams.set("postalCode", supportedPostalCode);
+    setSearchParams(nextParams, { replace: true });
   };
 
   const toggleFavorite = (id) => {
@@ -218,10 +287,16 @@ const FindCare = () => {
             <label className="find-care-search-field">
               <MapPin className="size-5" />
               <input
+                list="dhaka-postal-locations"
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
-                placeholder="Location"
+                placeholder="Area or Dhaka postal code"
               />
+              <datalist id="dhaka-postal-locations">
+                {Object.entries(DHAKA_POSTAL_AREAS).map(([code, area]) => (
+                  <option key={code} value={`${area}, Dhaka ${code}`} />
+                ))}
+              </datalist>
             </label>
             <label className="find-care-search-field">
               <CalendarDays className="size-5" />
@@ -311,13 +386,23 @@ const FindCare = () => {
             </span>
           </div>
           <div className="space-y-4">
+            {directoryError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {directoryError}
+              </div>
+            )}
+            {directoryLoading && (
+              <div className="rounded-lg border border-[#c3c6d6] bg-white p-8 text-center text-[#434654]">
+                Loading verified caregivers...
+              </div>
+            )}
             {visibleCaregivers.map((caregiver) => (
               <article
-                className={`relative flex cursor-pointer gap-4 rounded-lg border bg-white p-4 transition ${selected.id === caregiver.id ? "border-2 border-[#003d9b] shadow-lg" : "border-[#c3c6d6] hover:border-[#003d9b]/50"}`}
+                className={`relative flex cursor-pointer gap-4 rounded-lg border bg-white p-4 transition ${selected?.id === caregiver.id ? "border-2 border-[#003d9b] shadow-lg" : "border-[#c3c6d6] hover:border-[#003d9b]/50"}`}
                 key={caregiver.id}
                 onClick={() => setSelectedId(caregiver.id)}
               >
-                <img
+                <PublicCaregiverImage
                   className="size-24 shrink-0 rounded object-cover"
                   src={caregiver.image}
                   alt={caregiver.name}
@@ -366,15 +451,17 @@ const FindCare = () => {
                       ))}
                     </div>
                     <strong className="whitespace-nowrap text-[#003d9b]">
-                      ৳{caregiver.rate}/hr
+                      {caregiver.rate > 0
+                        ? `$${caregiver.rate}/hr`
+                        : "Rate on request"}
                     </strong>
                   </div>
                 </div>
               </article>
             ))}
-            {!visibleCaregivers.length && (
+            {!directoryLoading && !visibleCaregivers.length && (
               <div className="rounded-lg border border-[#c3c6d6] bg-white p-8 text-center text-[#434654]">
-                No caregivers match these filters.
+                No published caregivers match these filters.
               </div>
             )}
           </div>
@@ -389,11 +476,12 @@ const FindCare = () => {
           </div>
         </section>
 
-        <aside className="overflow-hidden rounded-xl border border-[#c3c6d6] bg-white shadow-sm lg:col-span-7 lg:sticky lg:top-[218px] lg:self-start">
+        {selected && (
+          <aside className="overflow-hidden rounded-xl border border-[#c3c6d6] bg-white shadow-sm lg:col-span-7 lg:sticky lg:top-[218px] lg:self-start">
           <div className="h-32 bg-[#003d9b]" />
           <div className="px-5 pb-6 sm:px-8">
             <div className="-mt-16 flex items-end justify-between gap-4">
-              <img
+              <PublicCaregiverImage
                 className="size-28 rounded-xl border-4 border-white object-cover shadow-md"
                 src={selected.image}
                 alt={selected.name}
@@ -421,19 +509,21 @@ const FindCare = () => {
                     <Clock3 className="size-4 text-[#003d9b]" />
                     {selected.experience}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <GraduationCap className="size-4 text-[#003d9b]" />
-                    BSN Graduate
+                   <span className="flex items-center gap-1">
+                     <GraduationCap className="size-4 text-[#003d9b]" />
+                     Verified caregiver
                   </span>
                 </p>
               </div>
               <div className="text-left sm:text-right">
                 <strong className="text-4xl text-[#003d9b]">
-                  ৳{selected.rate}
+                  {selected.rate > 0
+                    ? `$${selected.rate}`
+                    : "Rate on request"}
                 </strong>
-                <span>/hr</span>
+                {selected.rate > 0 && <span>/hr</span>}
                 <p className="text-xs text-[#737685]">
-                  Average response: 2 hrs
+                  Contact through SwiftOpsBD
                 </p>
               </div>
             </div>
@@ -453,18 +543,11 @@ const FindCare = () => {
               <section className="rounded-lg border border-[#c3c6d6] bg-[#f0f3ff] p-4">
                 <h3 className="flex items-center gap-2 font-medium">
                   <CalendarDays className="size-5 text-[#016c47]" />
-                  Weekly Availability
+                  Availability
                 </h3>
-                <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[10px]">
-                  {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
-                    <div key={`${day}-${index}`}>
-                      <span>{day}</span>
-                      <span
-                        className={`mt-2 block aspect-square rounded-sm ${index < 5 ? "bg-[#003d9b]" : "bg-[#c3c6d6]"}`}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <p className="mt-4 text-xs text-[#434654]">
+                  Confirm availability when creating the care plan.
+                </p>
               </section>
             </div>
 
@@ -480,7 +563,7 @@ const FindCare = () => {
                   Service Area
                 </h3>
                 <p className="mt-1 text-xs font-medium">
-                  Primary: Gulshan 1212, Banani, Baridhara
+                  {selected.location}
                 </p>
               </div>
             </section>
@@ -511,10 +594,39 @@ const FindCare = () => {
               </button>
             </div>
           </div>
-        </aside>
+          </aside>
+        )}
       </main>
       <FindCareFooter />
     </>
+  );
+};
+
+const PublicCaregiverImage = ({ className, src, alt }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <span
+        className={`${className} grid place-items-center bg-[#e7efff] font-semibold text-[#0649ad]`}
+        role="img"
+        aria-label={alt}
+      >
+        {alt
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part[0])
+          .join("")
+          .toUpperCase()}
+      </span>
+    );
+  }
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      onError={() => setFailed(true)}
+    />
   );
 };
 

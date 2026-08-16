@@ -1,9 +1,15 @@
 import heroImage from "../assets/hero.png";
-import sarahImage from "../assets/caregiver-sarah.jpg";
-import allexusImage from "../assets/caregiver-allexus.jpg";
-import kellyImage from "../assets/caregiver-kelly.jpg";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  normalizePostalCode,
+  postalArea,
+} from "../data/dhakaPostalCodes";
 import useCmsContent from "../hooks/useCmsContent";
+import {
+  listPublicCaregivers,
+  publicCaregiverPhotoUrl,
+} from "../services/publicDirectoryService";
 
 const Icon = ({ name, className = "size-6" }) => {
   const paths = {
@@ -36,36 +42,6 @@ const services = [
   ["book", "Tutoring"],
 ];
 
-const caregivers = [
-  {
-    name: "Sarah",
-    role: "Nanny • 5 years experience",
-    rating: "4.8",
-    image: sarahImage,
-    quote: "Sarah is amazing! She is very interactive with the kids. They ask for her to come back over and over again.",
-    author: "Jennifer M.",
-    tags: ["Meal prep", "Light cleaning"],
-  },
-  {
-    name: "Allexus",
-    role: "Nanny • 3 years experience",
-    rating: "5.0",
-    image: allexusImage,
-    quote: "Allexus was wonderful with our twins. Active, knowledgeable, playful, loving, responsible—she would hire her again.",
-    author: "Amy K.",
-    tags: ["Newborn care", "Laundry"],
-  },
-  {
-    name: "Kelly",
-    role: "Nanny, caregiver • 10 years experience",
-    rating: "4.8",
-    image: kellyImage,
-    quote: "Kelly is a very kind and compassionate caregiver. I am very satisfied with the level of care she provides for my mother.",
-    author: "Gail M.",
-    tags: ["Dementia care", "Transportation"],
-  },
-];
-
 const steps = [
   ["post", "Post a job", "Tell us exactly what you need, and let caregivers apply directly to your position."],
   ["people", "Compare profiles", "From experience and ratings to location and pay, see it all in one clear view."],
@@ -75,6 +51,49 @@ const steps = [
 const Home = () => {
   const { publishedContent } = useCmsContent();
   const cms = publishedContent.home;
+  const navigate = useNavigate();
+  const [postalCode, setPostalCode] = useState("");
+  const [postalError, setPostalError] = useState("");
+  const [featuredCaregivers, setFeaturedCaregivers] = useState([]);
+  const [directoryLoading, setDirectoryLoading] = useState(true);
+  const [directoryError, setDirectoryError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    listPublicCaregivers()
+      .then((records) => {
+        if (!active) return;
+        setFeaturedCaregivers(
+          records.slice(0, 3).map((caregiver) => ({
+            ...caregiver,
+            image: caregiver.hasPhoto
+              ? publicCaregiverPhotoUrl(caregiver.id)
+              : "",
+          })),
+        );
+        setDirectoryError("");
+      })
+      .catch((error) => {
+        if (active) setDirectoryError(error.message);
+      })
+      .finally(() => {
+        if (active) setDirectoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const findCareByPostalCode = (event) => {
+    event.preventDefault();
+    const code = normalizePostalCode(postalCode);
+    if (!code || !postalArea(code)) {
+      setPostalError("Enter a supported 4-digit Dhaka postal code.");
+      return;
+    }
+    navigate(`/find-care?postalCode=${encodeURIComponent(code)}`);
+  };
+
   return (
   <>
     <section className="relative isolate flex min-h-[500px] items-center justify-center overflow-hidden bg-[#f0f3ff]">
@@ -84,13 +103,30 @@ const Home = () => {
         <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-[-0.02em] text-[#101c2d] sm:text-5xl">
           {cms.headline}
         </h1>
-        <form className="mt-5 flex w-full max-w-xl items-center rounded-full border border-[#c3c6d6] bg-white p-2 shadow-2xl" onSubmit={(event) => event.preventDefault()}>
+        <form className="mt-5 flex w-full max-w-xl items-center rounded-full border border-[#c3c6d6] bg-white p-2 shadow-2xl" onSubmit={findCareByPostalCode}>
           <label className="sr-only" htmlFor="postal-code">Enter Postal Code</label>
-          <input id="postal-code" className="min-w-0 flex-1 bg-transparent px-5 py-3 text-base outline-none" placeholder="Enter Postal Code" />
+          <input
+            id="postal-code"
+            className="min-w-0 flex-1 bg-transparent px-5 py-3 text-base outline-none"
+            inputMode="numeric"
+            maxLength={4}
+            pattern="[0-9]{4}"
+            placeholder="Enter Postal Code"
+            value={postalCode}
+            onChange={(event) => {
+              setPostalCode(event.target.value.replace(/\D/g, "").slice(0, 4));
+              setPostalError("");
+            }}
+          />
           <button className="primary-button flex items-center gap-2" type="submit">
             {cms.primaryButton} <Icon name="search" className="size-[18px]" />
           </button>
         </form>
+        {postalError && (
+          <p className="mt-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-red-700">
+            {postalError}
+          </p>
+        )}
         <p className="mt-6 text-xl font-semibold text-[#101c2d] sm:text-2xl">{cms.subheadline}</p>
       </div>
     </section>
@@ -134,11 +170,32 @@ const Home = () => {
     <section id="caregivers" className="bg-[#f0f3ff] py-16 lg:py-20">
       <div className="mx-auto max-w-7xl px-6">
         <p className="mb-12 text-center text-base text-[#101c2d]">Meet our top-rated caregivers</p>
+        {directoryLoading && (
+          <p className="text-center text-sm text-[#434654]">
+            Loading verified caregivers…
+          </p>
+        )}
+        {!directoryLoading && directoryError && (
+          <p className="rounded-xl border border-red-200 bg-white p-5 text-center text-sm text-red-700">
+            The caregiver directory is temporarily unavailable.
+          </p>
+        )}
+        {!directoryLoading && !directoryError && featuredCaregivers.length === 0 && (
+          <p className="rounded-xl border border-[#c3c6d6] bg-white p-5 text-center text-sm text-[#434654]">
+            No approved caregivers are currently available.
+          </p>
+        )}
         <div className="grid gap-8 md:grid-cols-3 lg:gap-12">
-          {caregivers.map((caregiver) => (
-            <article className="overflow-hidden rounded-xl border border-[#c3c6d6] bg-white shadow-sm" key={caregiver.name}>
+          {featuredCaregivers.map((caregiver) => (
+            <article className="overflow-hidden rounded-xl border border-[#c3c6d6] bg-white shadow-sm" key={caregiver.id}>
               <div className="relative h-72 overflow-hidden">
-                <img className="size-full object-cover" src={caregiver.image} alt={`${caregiver.name}, verified caregiver`} />
+                {caregiver.image ? (
+                  <img className="size-full object-cover" src={caregiver.image} alt={`${caregiver.name}, verified caregiver`} />
+                ) : (
+                  <div className="grid size-full place-items-center bg-[#d7e3fb] text-5xl font-bold text-[#0649ad]" aria-label={`${caregiver.name} has no profile photo`}>
+                    {caregiver.name?.trim()?.charAt(0)?.toUpperCase() || "C"}
+                  </div>
+                )}
                 <span className="absolute right-4 top-4 rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-700">
                   ● Verified
                 </span>
@@ -147,17 +204,23 @@ const Home = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-2xl font-semibold">{caregiver.name}</h3>
-                    <p className="text-xs text-[#434654]">{caregiver.role}</p>
+                    <p className="text-xs text-[#434654]">
+                      {caregiver.role} • {caregiver.experience}
+                    </p>
                   </div>
-                  <span className="text-sm font-semibold">★ {caregiver.rating}</span>
+                  <span className="text-sm font-semibold">
+                    ★ {caregiver.rating > 0 ? caregiver.rating.toFixed(1) : "New"}
+                  </span>
                 </div>
                 <blockquote className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-[#434654]">
-                  “{caregiver.quote}”
-                  <cite className="mt-2 block font-semibold text-[#003d9b]">— {caregiver.author}</cite>
+                  “{caregiver.biography}”
+                  <cite className="mt-2 block font-semibold text-[#003d9b]">
+                    — SwiftOpsBD verified professional
+                  </cite>
                 </blockquote>
                 <p className="mt-5 text-[10px] uppercase tracking-wider text-slate-500">Can help with</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {caregiver.tags.map((tag) => <span className="rounded-full border border-[#c3c6d6] bg-[#f0f3ff] px-3 py-1 text-xs" key={tag}>{tag}</span>)}
+                  {caregiver.tags.slice(0, 4).map((tag) => <span className="rounded-full border border-[#c3c6d6] bg-[#f0f3ff] px-3 py-1 text-xs" key={tag}>{tag}</span>)}
                 </div>
               </div>
             </article>
