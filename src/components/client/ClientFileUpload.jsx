@@ -16,7 +16,7 @@ const ClientFileUpload = ({ title, description, value, multiple = false, accept,
         <span className={`mt-1 text-sm font-semibold ${accent === "green" ? "text-emerald-700" : "text-[#0047a8]"}`}>
           {selectedNames.length ? selectedNames.join(", ") : multiple ? "Add Documents" : "Click to upload"}
         </span>
-        <span className="mt-1 text-xs text-[#4c5261]">{multiple ? "PDF, DOCX, JPG supported." : "or drag and drop SVG, PNG, JPG (max. 5MB)"}</span>
+        <span className="mt-1 text-xs text-[#4c5261]">{multiple ? "PDF, DOCX, JPG supported." : "or drag and drop PNG, JPG, WEBP (max. 5MB)"}</span>
         <input className="sr-only" type="file" multiple={multiple} accept={accept} onChange={onChange} />
       </label>
     </section>

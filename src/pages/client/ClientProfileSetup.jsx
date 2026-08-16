@@ -1,4 +1,5 @@
 import { BadgeCheck, CalendarDays, ChevronDown, Hash, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ClientOnboardingLayout from "../../components/client/ClientOnboardingLayout";
 import ClientProgress from "../../components/client/ClientProgress";
@@ -9,17 +10,27 @@ const ClientProfileSetup = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { record, saveProfile } = useClientOnboarding();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    saveProfile({
-      fullName: formData.get("fullName"),
-      dateOfBirth: formData.get("dateOfBirth"),
-      gender: formData.get("gender"),
-      nidNumber: formData.get("nidNumber"),
-    });
-    navigate("/client/contact-setup");
+    setSaving(true);
+    setError("");
+    try {
+      await saveProfile({
+        fullName: formData.get("fullName"),
+        dateOfBirth: formData.get("dateOfBirth"),
+        gender: formData.get("gender"),
+        nidNumber: formData.get("nidNumber"),
+      });
+      navigate("/client/contact-setup");
+    } catch (saveError) {
+      setError(saveError.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -103,10 +114,12 @@ const ClientProfileSetup = () => {
           </label>
         </div>
 
+        {error && <p className="mt-6 rounded bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
+
         <div className="mt-9 flex flex-col-reverse justify-between gap-3 border-t border-[#c5cad8] pt-4 sm:flex-row">
-          <button className="rounded border border-[#bfc6d8] bg-[#f3f5fa] px-6 py-3 text-sm font-semibold" type="button" onClick={() => navigate("/join")}>Cancel</button>
-          <button className="rounded bg-[#0047a8] px-6 py-3 text-sm font-semibold text-white hover:bg-[#003781]" type="submit">
-            Next: Contact &amp; Location <span className="ml-2 text-xl">→</span>
+          <button className="rounded border border-[#bfc6d8] bg-[#f3f5fa] px-6 py-3 text-sm font-semibold" type="button" disabled={saving} onClick={() => navigate("/join")}>Cancel</button>
+          <button className="rounded bg-[#0047a8] px-6 py-3 text-sm font-semibold text-white hover:bg-[#003781] disabled:opacity-60" type="submit" disabled={saving}>
+            {saving ? "Saving..." : <>Next: Contact &amp; Location <span className="ml-2 text-xl">→</span></>}
           </button>
         </div>
       </form>
