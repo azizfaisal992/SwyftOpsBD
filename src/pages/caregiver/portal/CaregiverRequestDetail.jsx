@@ -9,30 +9,95 @@ import {
   Pill,
   Utensils,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import mapImage from "../../../assets/find-care-map.jpg";
-import { requestedClients } from "../../../data/caregiverPortalData";
+import findCareSarah from "../../../assets/find-care-sarah.jpg";
+import {
+  getAvailableCareRequest,
+  respondToCareRequest,
+} from "../../../services/careRequestService";
 
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const CaregiverRequestDetail = () => {
   const { clientId } = useParams();
   const [notice, setNotice] = useState("");
-  const client = requestedClients.find((item) => item.id === clientId) ?? requestedClients[0];
-  const requestedDays = client.schedule.some((item) => item.startsWith("Daily"))
-    ? weekDays
-    : client.schedule.map((item) => item.slice(0, 3));
-  const standardShift = client.schedule[0]?.match(/\((.*?)\)/)?.[1] ?? "09:00 - 12:00";
-  const visitRate = client.rate.replace(" / Visit", "");
+  const [request, setRequest] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [responding, setResponding] = useState("");
 
-  const respond = (response) => {
-    setNotice(
-      response === "accept"
-        ? `${client.name}'s request has been selected for acceptance. The API will save this decision later.`
-        : `${client.name}'s request has been selected for decline. The API will save this decision later.`,
-    );
+  useEffect(() => {
+    let active = true;
+    getAvailableCareRequest(clientId)
+      .then((record) => {
+        if (active) setRequest(record);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [clientId]);
+
+  const client = request
+    ? {
+        name: request.client.fullName,
+        age: request.client.age,
+        gender: request.client.gender,
+        area: request.client.area,
+        care: request.careType,
+        rate: request.requestedCaregiver?.rate
+          ? `$${request.requestedCaregiver.rate.toLocaleString()} / Visit`
+          : "To be agreed / Visit",
+        image: findCareSarah,
+      }
+    : null;
+  const requestedDays = request?.preferredDays || [];
+  const standardShift = request
+    ? `${request.preferredStartTime || request.preferredTime} • ${request.hoursPerWeek} hrs/week`
+    : "";
+  const visitRate = client?.rate.replace(" / Visit", "") || "";
+
+  const respond = async (response) => {
+    setResponding(response);
+    setError("");
+    try {
+      await respondToCareRequest(
+        clientId,
+        response === "accept" ? "accepted" : "declined",
+      );
+      setNotice(
+        response === "accept"
+          ? `${client.name}'s request was accepted and sent to the admin matching queue.`
+          : `${client.name}'s request was declined and removed from your queue.`,
+      );
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setResponding("");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="grid min-h-[calc(100vh-64px)] place-items-center bg-[#f4f7ff] text-sm font-semibold text-[#0649ad]">
+        Loading care request...
+      </div>
+    );
+  }
+  if (error && !client) {
+    return (
+      <div className="grid min-h-[calc(100vh-64px)] place-items-center bg-[#f4f7ff] p-6">
+        <p className="rounded-xl bg-red-50 p-5 text-red-700">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f4f7ff]">
@@ -41,6 +106,11 @@ const CaregiverRequestDetail = () => {
           {notice && (
             <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               <CheckCircle2 className="size-5 shrink-0" /> {notice}
+            </div>
+          )}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
             </div>
           )}
 
@@ -88,9 +158,14 @@ const CaregiverRequestDetail = () => {
           <div className="grid gap-6 md:grid-cols-2">
             <section className="rounded-2xl border border-[#c5cad8] bg-white p-6">
               <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#4c5261]">Clinical Care Needs</h2>
-              <CareNeed icon={Accessibility} label="Help with mobility" tone="blue" />
-              <CareNeed icon={Pill} label="Medication reminders" tone="purple" />
-              <CareNeed icon={Utensils} label="Light meal preparation" tone="orange" />
+              {(request.tasks || []).map((task, index) => (
+                <CareNeed
+                  icon={[Accessibility, Pill, Utensils][index % 3]}
+                  label={task}
+                  tone={["blue", "purple", "orange"][index % 3]}
+                  key={task}
+                />
+              ))}
             </section>
             <section className="rounded-2xl border border-[#c5cad8] bg-white p-6">
               <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#4c5261]">Schedule Details</h2>
@@ -117,7 +192,7 @@ const CaregiverRequestDetail = () => {
 
       <footer className="sticky bottom-0 z-30 flex w-full flex-col gap-3 border-t border-[#c5cad8] bg-white px-4 py-3 shadow-[0_-6px_20px_rgba(15,23,42,.06)] sm:flex-row sm:items-center sm:px-5 sm:py-4">
         <div><b>Reviewing {client.name}</b><small className="block text-[#4c5261]">Decide by Friday, 10:00 AM</small></div>
-        <div className="grid grid-cols-2 gap-3 sm:ml-auto sm:flex sm:gap-4"><button className="min-w-0 rounded-xl border-2 border-[#777e8c] px-4 py-3 font-semibold text-[#4c5261] sm:min-w-32 sm:px-6" type="button" onClick={() => respond("decline")}>Decline</button><button className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[#0649ad] px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/20 sm:min-w-60 sm:gap-3 sm:px-8" type="button" onClick={() => respond("accept")}><CheckCircle2 className="hidden size-5 min-[380px]:block" /> Accept Request</button></div>
+        <div className="grid grid-cols-2 gap-3 sm:ml-auto sm:flex sm:gap-4"><button className="min-w-0 rounded-xl border-2 border-[#777e8c] px-4 py-3 font-semibold text-[#4c5261] disabled:opacity-60 sm:min-w-32 sm:px-6" type="button" disabled={Boolean(responding) || Boolean(notice)} onClick={() => respond("decline")}>{responding === "decline" ? "Declining..." : "Decline"}</button><button className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[#0649ad] px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/20 disabled:opacity-60 sm:min-w-60 sm:gap-3 sm:px-8" type="button" disabled={Boolean(responding) || Boolean(notice)} onClick={() => respond("accept")}><CheckCircle2 className="hidden size-5 min-[380px]:block" /> {responding === "accept" ? "Accepting..." : "Accept Request"}</button></div>
       </footer>
     </div>
   );

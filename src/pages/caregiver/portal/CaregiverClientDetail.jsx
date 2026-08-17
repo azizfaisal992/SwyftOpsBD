@@ -1,329 +1,221 @@
 import {
   ArrowLeft,
   BadgeCheck,
-  Banknote,
-  Bell,
-  BriefcaseMedical,
+  CalendarDays,
+  CheckCircle2,
   Clock3,
-  History,
-  Info,
+  LoaderCircle,
   MapPin,
   MessageSquare,
   Navigation,
   Phone,
-  Pill,
   PlayCircle,
-  Printer,
-  ReceiptText,
-  Share2,
+  ShieldCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import mapImage from "../../../assets/find-care-map.jpg";
+import BarikoiMap from "../../../components/maps/BarikoiMap";
 import {
-  assignedClients,
-  caregiverAccount,
-} from "../../../data/caregiverPortalData";
+  confirmMyAssignment,
+  getMyAssignment,
+} from "../../../services/assignmentService";
+import {
+  getBrowserLocation,
+  getMapRoute,
+} from "../../../services/mapService";
+
+const ageFrom = (dateOfBirth) => {
+  const birth = new Date(`${dateOfBirth}T00:00:00`);
+  if (Number.isNaN(birth.getTime())) return "Not recorded";
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  if (
+    now.getMonth() < birth.getMonth() ||
+    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())
+  ) age -= 1;
+  return `${age} years`;
+};
+
+const formatVisit = (visit) =>
+  new Date(`${visit.date}T00:00:00`).toLocaleDateString("en-BD", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 
 const CaregiverClientDetail = () => {
-  const { clientId } = useParams();
-  const [notice, setNotice] = useState("");
-  const client =
-    assignedClients.find((item) => item.id === clientId) ?? assignedClients[0];
+  const { clientId: assignmentId } = useParams();
+  const [assignment, setAssignment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState("");
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [route, setRoute] = useState(null);
+  const [routing, setRouting] = useState(false);
 
-  const showNotice = (message) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 3500);
+  useEffect(() => {
+    let active = true;
+    getMyAssignment(assignmentId)
+      .then((record) => {
+        if (active) setAssignment(record);
+      })
+      .catch((loadError) => {
+        if (active) setError(loadError.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [assignmentId]);
+
+  const confirm = async () => {
+    setWorking(true);
+    setError("");
+    try {
+      setAssignment(await confirmMyAssignment(assignmentId));
+    } catch (confirmError) {
+      setError(confirmError.message);
+    } finally {
+      setWorking(false);
+    }
   };
 
-  const personalInformation = [
-    ["Date of Birth", `May 12, 1948 (${client.age} yrs)`],
-    ["Gender", client.gender],
-    ["NID Status", "VERIFIED"],
-    ["Primary Language", "Bengali, English"],
-    ["Blood Group", "O Positive"],
-  ];
+  const showRoute = async () => {
+    const destination = {
+      latitude: Number(assignment?.client?.latitude),
+      longitude: Number(assignment?.client?.longitude),
+    };
+    if (!Number.isFinite(destination.latitude)
+      || !Number.isFinite(destination.longitude)) {
+      setError("This client has not pinned a precise service location yet.");
+      return;
+    }
+    setRouting(true);
+    setError("");
+    try {
+      const origin = await getBrowserLocation();
+      setCurrentLocation(origin);
+      setRoute(await getMapRoute(origin, destination));
+    } catch (routeError) {
+      setError(routeError.message);
+    } finally {
+      setRouting(false);
+    }
+  };
+
+  if (loading) return <div className="grid min-h-[70vh] place-items-center"><LoaderCircle className="size-9 animate-spin text-[#0755d3]" /></div>;
+  if (!assignment) return <div className="mx-auto max-w-xl p-8"><p className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">{error || "Assignment not found."}</p></div>;
+
+  const client = assignment.client || {};
+  const address = [client.house, client.road, client.area].filter(Boolean).join(", ");
+  const clientLocation = Number.isFinite(Number(client.latitude))
+    && Number.isFinite(Number(client.longitude))
+    ? {
+        latitude: Number(client.latitude),
+        longitude: Number(client.longitude),
+      }
+    : null;
+  const upcoming = (assignment.visits || []).filter((visit) => visit.status === "scheduled").slice(0, 8);
 
   return (
     <div className="min-h-screen bg-[#f8f9ff] text-[#101c2d]">
-      <header className="flex h-16 items-center border-b border-[#c5cad8] bg-white px-3 sm:px-8">
-        <Link
-          className="flex items-center gap-4 text-[#0649ad]"
-          to="/caregiver/assigned-clients"
-          aria-label="Back to assigned clients"
-        >
-          <ArrowLeft className="size-5" />
-          <b className="text-lg sm:text-2xl">SwiftOpsBD</b>
-        </Link>
-        <div className="ml-auto flex items-center gap-3 text-[#3f4655] sm:gap-5">
-          <Bell className="hidden size-5 sm:block" />
-          <Link to="/caregiver/notifications" aria-label="Messages">
-            <MessageSquare className="size-5" />
-          </Link>
-          <a className="hidden sm:block" href="tel:+8801700000000" aria-label="Call support">
-            <Phone className="size-5" />
-          </a>
-          <img
-            className="size-9 rounded-full object-cover"
-            src={caregiverAccount.image}
-            alt={caregiverAccount.name}
-          />
-        </div>
+      <header className="flex h-16 items-center border-b border-[#c5cad8] bg-white px-4 sm:px-8">
+        <Link className="flex items-center gap-3 text-[#0649ad]" to="/caregiver/assigned-clients"><ArrowLeft className="size-5" /><b className="text-lg sm:text-2xl">SwiftOpsBD</b></Link>
+        <span className="ml-auto rounded-full bg-[#eef3ff] px-3 py-1 text-xs font-semibold text-[#0649ad]">{assignment.status.replaceAll("_", " ")}</span>
       </header>
 
-      <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-8 sm:py-10">
-        {notice && (
-          <div className="mb-5 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            <BadgeCheck className="size-5" /> {notice}
-          </div>
-        )}
-
+      <main className="mx-auto max-w-[1200px] px-4 py-7 sm:px-8 sm:py-10">
+        {error && <p className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
         <section className="flex flex-col gap-6 lg:flex-row lg:items-center">
-          <div className="flex min-w-0 items-center gap-4 sm:gap-6">
-            <div className="relative shrink-0">
-              <img
-                className="size-24 rounded-2xl border-4 border-white object-cover shadow-md sm:size-32"
-                src={client.image}
-                alt={client.name}
-              />
-              <span className="absolute -bottom-2 -right-2 flex items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white shadow">
-                <BadgeCheck className="size-4" /> Verified
-              </span>
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
-                {client.name}
-              </h1>
-              <p className="mt-2 flex items-center gap-2 text-[#4c5261]">
-                <Info className="size-5 text-[#0649ad]" /> Priority Patient · {client.area}
-              </p>
-            </div>
+          <div className="flex items-center gap-5">
+            <span className="grid size-24 shrink-0 place-items-center rounded-2xl bg-[#dce8ff] text-4xl font-bold text-[#0649ad] shadow sm:size-28">{client.fullName?.slice(0, 1) || "C"}</span>
+            <div><h1 className="text-2xl font-bold sm:text-4xl">{client.fullName}</h1><p className="mt-2 flex items-center gap-2 text-[#4c5261]"><BadgeCheck className="size-5 text-emerald-700" />Verified client · {client.area}</p></div>
           </div>
-
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:gap-4 lg:ml-auto">
-            <Link
-              className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[#dce8ff] px-2 py-3 text-sm font-semibold text-[#0649ad] shadow-sm sm:min-w-40 sm:px-6 sm:py-4 sm:text-lg"
-              to="/caregiver/notifications"
-            >
-              <MessageSquare className="size-5" /> Message
-            </Link>
-            <a
-              className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[#dce8ff] px-2 py-3 text-sm font-semibold text-[#0649ad] shadow-sm sm:min-w-32 sm:px-6 sm:py-4 sm:text-lg"
-              href="tel:+8801700000000"
-            >
-              <Phone className="size-5" /> Call
-            </a>
-            <Link
-              className="col-span-2 flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[#0649ad] px-2 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/15 sm:min-w-48 sm:px-6 sm:py-4 sm:text-lg"
-              to={`/caregiver/visit/${client.id}`}
-            >
-              <PlayCircle className="size-5" /> Start Visit
-            </Link>
+          <div className="grid grid-cols-2 gap-2 sm:flex lg:ml-auto">
+            <Link className="flex items-center justify-center gap-2 rounded-xl bg-[#dce8ff] px-5 py-3 font-semibold text-[#0649ad]" to="/caregiver/notifications"><MessageSquare className="size-5" />Message</Link>
+            <a className="flex items-center justify-center gap-2 rounded-xl bg-[#dce8ff] px-5 py-3 font-semibold text-[#0649ad]" href={`tel:${client.phone}`}><Phone className="size-5" />Call</a>
+            {assignment.status === "pending_confirmation" ? (
+              <button className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-6 py-3 font-semibold text-white disabled:opacity-60" type="button" disabled={working} onClick={confirm}>{working ? <LoaderCircle className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}Confirm assignment</button>
+            ) : (
+              <Link className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#0649ad] px-6 py-3 font-semibold text-white" to={`/caregiver/visit/${assignment.assignmentId}`}><PlayCircle className="size-5" />Start Visit</Link>
+            )}
           </div>
         </section>
 
-        <div className="mt-6 lg:hidden">
-          <AddressLocationCard client={client} />
+        <div className="mt-8 grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
+          <section className="rounded-2xl border border-[#d6dbe8] bg-white p-6">
+            <h2 className="text-xl font-semibold text-[#0649ad]">Personal Information</h2>
+            <dl className="mt-4 divide-y">
+              <Detail label="Date of birth" value={client.dateOfBirth || "Not recorded"} />
+              <Detail label="Age" value={ageFrom(client.dateOfBirth)} />
+              <Detail label="Gender" value={client.gender || "Not recorded"} />
+              <Detail label="Verification" value={client.verified ? "Verified" : "Pending"} />
+              <Detail label="Phone" value={client.phone || "Not recorded"} />
+            </dl>
+          </section>
+          <section className="rounded-2xl border border-[#d6dbe8] bg-white p-6">
+            <div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-semibold text-[#0649ad]">Care Plan</h2><span className="ml-auto rounded-full bg-orange-100 px-4 py-1 text-xs font-semibold text-amber-900">{assignment.careType}</span></div>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <article className="rounded-xl bg-[#eef3ff] p-4"><small className="uppercase tracking-wider text-[#4c5261]">Care tasks</small><ul className="mt-3 space-y-2 text-sm">{assignment.tasks.map((task) => <li className="flex items-center gap-2" key={task}><CheckCircle2 className="size-4 text-emerald-700" />{task}</li>)}</ul></article>
+              <article className="rounded-xl bg-[#eef3ff] p-4"><small className="uppercase tracking-wider text-[#4c5261]">Weekly schedule</small><p className="mt-3 font-semibold">{assignment.hoursPerWeek} hours per week</p><p className="mt-2 text-sm">{assignment.preferredDays.join(", ")}</p><p className="mt-2 flex items-center gap-2 text-sm"><Clock3 className="size-4 text-[#0755d3]" />{assignment.preferredStartTime || assignment.preferredTime}</p><p className="mt-2 text-xs text-[#606878]">Starts {assignment.serviceStartDate || "after confirmation"}</p></article>
+            </div>
+          </section>
         </div>
 
-        <section className="mt-10 grid gap-6 lg:grid-cols-[382px_1fr]">
-          <article className="rounded-2xl border border-[#d6dbe8] bg-white p-6">
-            <h2 className="flex items-center gap-2 text-xl font-semibold text-[#0649ad]">
-              <Info className="size-5" /> Personal Information
-            </h2>
-            <dl className="mt-5">
-              {personalInformation.map(([label, value]) => (
-                <div
-                  className="flex items-center justify-between gap-5 border-b border-[#e0e4ed] py-4 last:border-b-0"
-                  key={label}
+        <section className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+          <article className="overflow-hidden rounded-2xl border border-[#d6dbe8] bg-white">
+            <div className="p-6">
+              <h2 className="flex items-center gap-2 text-xl font-semibold text-[#0649ad]"><MapPin className="size-5" />Address &amp; Location</h2>
+              <p className="mt-2 text-sm text-[#4c5261]">{address || "Location not provided"}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  className="flex items-center gap-2 rounded-lg bg-[#0649ad] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                  type="button"
+                  disabled={routing || !clientLocation}
+                  onClick={showRoute}
                 >
-                  <dt className="text-sm text-[#4c5261]">{label}</dt>
-                  <dd
-                    className={`text-right text-sm font-semibold ${
-                      label === "Blood Group" ? "text-red-600" : ""
-                    }`}
-                  >
-                    {label === "NID Status" ? (
-                      <span className="rounded bg-emerald-200 px-3 py-1 text-xs text-emerald-800">
-                        {value}
-                      </span>
-                    ) : (
-                      value
-                    )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </article>
-
-          <article className="rounded-2xl border border-[#d6dbe8] bg-white p-6">
-            <header className="flex items-center">
-              <h2 className="flex items-center gap-2 text-xl font-semibold text-[#0649ad]">
-                <BriefcaseMedical className="size-5" /> Medical Details
-              </h2>
-              <span className="ml-auto rounded-full bg-orange-100 px-4 py-1 text-xs font-semibold text-amber-900">
-                {client.care}
-              </span>
-            </header>
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
-              <section className="rounded-xl bg-[#eef3ff] p-4">
-                <p className="text-xs uppercase tracking-[0.08em] text-[#4c5261]">
-                  Current Medications
-                </p>
-                <Medication name="Amlodipine (5mg)" detail="Daily - Morning" />
-                <Medication name="Metformin (500mg)" detail="Twice Daily - Post Meal" />
-              </section>
-              <section className="rounded-xl bg-[#eef3ff] p-4">
-                <p className="text-xs uppercase tracking-[0.08em] text-[#4c5261]">
-                  Visit Schedule
-                </p>
-                <div className="mt-4 flex items-start gap-4">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#0755d3] font-semibold text-white">
-                    3x
+                  <Navigation className="size-4" />
+                  {routing ? "Finding route..." : "Route from my location"}
+                </button>
+                {route && (
+                  <span className="text-sm font-semibold text-emerald-700">
+                    {(route.distanceMeters / 1000).toFixed(1)} km · {Math.ceil(route.durationSeconds / 60)} min
                   </span>
-                  <div>
-                    <b className="block">Frequency</b>
-                    <p className="text-sm text-[#4c5261]">Three times a day</p>
-                    <div className="mt-5 flex gap-3">
-                      <Clock3 className="size-5 text-[#0755d3]" />
-                      <span>
-                        <b className="block">Preferred Timing</b>
-                        <small className="text-[#4c5261]">Mornings &amp; Afternoons</small>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </section>
+                )}
+              </div>
+            </div>
+            <div className="relative h-80 bg-[#eef3ff]">
+              <BarikoiMap
+                center={clientLocation}
+                markers={[
+                  ...(clientLocation ? [{ ...clientLocation, label: client.fullName }] : []),
+                  ...(currentLocation ? [{ ...currentLocation, label: "Your location" }] : []),
+                ]}
+                routeGeometry={route?.geometry}
+                interactive
+                className="h-full w-full"
+                zoom={clientLocation ? 14 : 11}
+              />
+              {!clientLocation && <span className="absolute bottom-4 left-4 right-4 rounded-lg bg-white px-4 py-3 text-center text-xs shadow">The client must pin a precise location before routing is available.</span>}
             </div>
           </article>
-        </section>
-
-        <section className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
-          <div className="hidden lg:block">
-            <AddressLocationCard client={client} />
-          </div>
-
           <article className="rounded-2xl border border-[#d6dbe8] bg-white p-6">
-            <h2 className="flex items-center gap-2 text-xl font-semibold text-[#0649ad]">
-              <History className="size-5" /> Visit History
-            </h2>
-            <div className="mt-6">
-              <VisitItem
-                title="Afternoon Visit"
-                time="Today, 02:30 PM"
-                note="Patient was resting comfortably. Blood pressure stable (120/80). Administered afternoon medication; mild knee pain reported."
-                completed
-              />
-              <VisitItem
-                title="Morning Visit"
-                time="Today, 09:15 AM"
-                note="Medications verified and assistance with light breakfast provided."
-                completed
-              />
-              <VisitItem
-                title="Night Visit"
-                time="Upcoming, 08:00 PM"
-                note="Schedule: Evening routine and vitals check."
-              />
+            <h2 className="flex items-center gap-2 text-xl font-semibold text-[#0649ad]"><CalendarDays className="size-5" />Upcoming Visits</h2>
+            <div className="mt-5 space-y-3">
+              {upcoming.map((visit) => <div className="rounded-xl border border-[#d6dbe8] p-4" key={visit.visitId}><div className="flex justify-between gap-4"><b>{formatVisit(visit)}</b><span className="text-sm font-semibold text-[#0649ad]">{visit.scheduledStartLocal}–{visit.scheduledEndLocal}</span></div><p className="mt-1 text-xs text-[#687184]">{visit.durationHours} hours · {visit.confirmationStatus}</p></div>)}
+              {upcoming.length === 0 && <p className="rounded-xl border border-dashed p-6 text-center text-sm text-[#687184]">No upcoming visits generated.</p>}
             </div>
           </article>
         </section>
 
-        <section className="mt-6 flex flex-col gap-4 rounded-2xl border border-[#d6dbe8] bg-white p-5 sm:p-6 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-4 lg:mr-auto">
-            <Banknote className="size-7 text-[#0649ad]" />
-            <div>
-              <h2 className="text-xl font-semibold text-[#0649ad]">Financial Summary</h2>
-              <p className="text-sm text-[#4c5261]">Overview of your earnings and payments</p>
-            </div>
-          </div>
-          <FinancialMetric label="Total Earnings" value="৳45,500" highlighted />
-          <FinancialMetric label="Last Payment" value="৳2,500" />
-          <FinancialMetric label="Payment Date" value="Oct 20, 2026" />
-          <button
-            className="flex items-center justify-center gap-2 rounded-xl border border-[#0649ad] px-5 py-3 text-sm font-semibold text-[#0649ad]"
-            type="button"
-            onClick={() => showNotice("Invoice history will be loaded from the payments API.")}
-          >
-            <ReceiptText className="size-4" /> View Invoices
-          </button>
-        </section>
-
-        <footer className="mt-10 flex flex-col gap-4 border-t border-[#c5cad8] py-7 text-xs text-[#4c5261] sm:flex-row sm:items-center">
-          <span>Last updated: Oct 24, 2026 · 04:12 PM</span>
-          <div className="flex gap-5 sm:ml-auto">
-            <button className="flex items-center gap-2" type="button" onClick={() => window.print()}>
-              <Printer className="size-4" /> Print Profile
-            </button>
-            <button
-              className="flex items-center gap-2"
-              type="button"
-              onClick={() => showNotice("PDF export will be generated by the caregiver API.")}
-            >
-              <Share2 className="size-4" /> Export PDF
-            </button>
-          </div>
-        </footer>
+        <footer className="mt-8 flex items-center justify-center gap-2 border-t py-6 text-xs tracking-widest text-[#687184]"><ShieldCheck className="size-5 text-[#0649ad]" />PRIVATE ASSIGNMENT DATA</footer>
       </main>
     </div>
   );
 };
 
-const Medication = ({ name, detail }) => (
-  <div className="mt-3 flex items-center gap-3 rounded-lg border border-[#c5cad8] bg-white p-3">
-    <Pill className="size-5 shrink-0 text-emerald-700" />
-    <span>
-      <b className="block text-sm">{name}</b>
-      <small className="text-[#4c5261]">{detail}</small>
-    </span>
-  </div>
-);
-
-const VisitItem = ({ title, time, note, completed = false }) => (
-  <div className="relative border-l-2 border-[#dbe5f5] pb-6 pl-7 last:pb-0">
-    <span className={`absolute -left-[11px] top-0 grid size-5 place-items-center rounded-full text-white ${completed ? "bg-emerald-700" : "bg-[#0755d3]"}`}>
-      {completed ? "✓" : "•••"}
-    </span>
-    <div className="flex gap-4">
-      <b className="text-sm">{title}</b>
-      <small className="ml-auto shrink-0 text-[#4c5261]">{time}</small>
-    </div>
-    <small className="text-[#4c5261]">Caregiver: {caregiverAccount.name}</small>
-    <p className={`mt-2 text-sm leading-5 ${completed ? "rounded-lg border border-[#c5cad8] bg-[#f8f9ff] p-3" : "italic text-[#4c5261]"}`}>
-      {note}
-    </p>
-  </div>
-);
-
-const FinancialMetric = ({ label, value, highlighted = false }) => (
-  <div className={`min-w-32 rounded-xl px-5 py-3 ${highlighted ? "bg-[#eef3ff]" : ""}`}>
-    <small className="block uppercase tracking-[0.08em] text-[#4c5261]">{label}</small>
-    <b className="mt-1 block">{value}</b>
-  </div>
-);
-
-const AddressLocationCard = ({ client }) => (
-  <article className="overflow-hidden rounded-2xl border border-[#d6dbe8] bg-white">
-    <div className="p-5 sm:p-6">
-      <h2 className="flex items-center gap-2 text-xl font-semibold text-[#0649ad]">
-        <MapPin className="size-5" /> Address &amp; Location
-      </h2>
-      <p className="mt-2 text-sm text-[#4c5261]">
-        House 24, Road 12, Block G, {client.area} 1212
-      </p>
-    </div>
-    <div className="relative h-64 overflow-hidden bg-[#27303b] sm:h-80">
-      <img
-        className="h-full w-full object-cover"
-        src={mapImage}
-        alt={`Map showing ${client.area}`}
-      />
-      <span className="absolute bottom-4 left-4 right-4 flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-xs shadow-lg sm:right-auto">
-        <Navigation className="size-5 shrink-0 text-[#0649ad]" /> 8 mins from
-        your current location
-      </span>
-    </div>
-  </article>
-);
+const Detail = ({ label, value }) => <div className="flex items-center justify-between gap-5 py-4"><dt className="text-sm text-[#4c5261]">{label}</dt><dd className="text-right text-sm font-semibold">{value}</dd></div>;
 
 export default CaregiverClientDetail;
