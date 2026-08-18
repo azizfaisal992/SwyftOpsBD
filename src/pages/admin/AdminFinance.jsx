@@ -15,12 +15,23 @@ import {
   Search,
   WalletCards,
   X,
+  UserRound,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import bkashLogo from "../../assets/bkash-logo.svg";
 import caregiverSarah from "../../assets/caregiver-sarah.jpg";
 import findCareKelly from "../../assets/find-care-kelly.jpg";
 import findCareSarah from "../../assets/find-care-sarah.jpg";
+import { getVerifiedClients } from "../../services/adminDirectoryService";
+import {
+  createAdminAssignmentPayout,
+  createAdminInvoice,
+  downloadPaymentPayslip,
+  downloadSwiftOpsInvoice,
+  getAdminFinanceOverview,
+  listAdminAssignmentPayoutQuotes,
+  updateAdminPayout,
+} from "../../services/paymentService";
 
 const clientInvoices = [
   {
@@ -119,28 +130,28 @@ const caregiverPayouts = [
 const metrics = [
   {
     label: "Gross Client Billing",
-    value: "৳2,845,000",
+    value: "$2,845,000",
     change: "+12.5% MTD",
     icon: WalletCards,
     tone: "blue",
   },
   {
     label: "Caregiver Payouts",
-    value: "৳1,987,000",
+    value: "$1,987,000",
     change: "+8.2% MTD",
     icon: Banknote,
     tone: "green",
   },
   {
     label: "Platform Net Revenue",
-    value: "৳858,000",
+    value: "$858,000",
     change: "+15.1% MTD",
     icon: ArrowLeftRight,
     tone: "slate",
   },
   {
     label: "Pending Payouts",
-    value: "৳198,300",
+    value: "$198,300",
     change: "12 active batches",
     icon: ReceiptText,
     tone: "amber",
@@ -161,7 +172,13 @@ const statusClasses = {
   "On Hold": "bg-slate-200 text-slate-700",
 };
 
-const formatMoney = (amount) => `৳${amount.toLocaleString("en-US")}`;
+const formatMoney = (amount, currency = "USD") =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(amount || 0));
 
 const AdminFinance = () => {
   const [tab, setTab] = useState("clients");
@@ -169,7 +186,132 @@ const AdminFinance = () => {
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [invoiceOpen, setInvoiceOpen] = useState(false);
-  const source = tab === "clients" ? clientInvoices : caregiverPayouts;
+  const [payoutOpen, setPayoutOpen] = useState(false);
+  const [finance, setFinance] = useState({
+    grossBilling: 0,
+    caregiverPayouts: 0,
+    platformNetRevenue: 0,
+    pendingPayouts: 0,
+    pendingPayoutCount: 0,
+    caregiverLiability: 0,
+    invoices: [],
+    payouts: [],
+    agreements: [],
+    platformRevenue: [],
+    caregiverLedger: [],
+    monthlyReconciliation: [],
+    currency: "USD",
+  });
+  const [clients, setClients] = useState([]);
+  const [payoutQuotes, setPayoutQuotes] = useState([]);
+  useEffect(() => {
+    Promise.all([
+      getAdminFinanceOverview(),
+      getVerifiedClients(),
+      listAdminAssignmentPayoutQuotes(),
+    ])
+      .then(([overview, records, quotes]) => {
+        setFinance(overview);
+        setClients(records);
+        setPayoutQuotes(quotes);
+      })
+      .catch((error) => setNotice(error.message));
+  }, []);
+  const liveInvoices = useMemo(
+    () => finance.invoices.map((invoice) => ({
+      id: invoice.invoiceId,
+      name: invoice.clientName || "Client",
+      personId: invoice.clientId,
+      image: invoice.clientPhotoURL || "",
+      service: invoice.description,
+      date: new Date(invoice.createdAt).toLocaleString(),
+      amount: invoice.total,
+      currency: invoice.currency || finance.currency,
+      method: invoice.gateway || "Not selected",
+      kind: "invoice",
+      swiftopsInvoiceId:
+        invoice.status === "paid" ? invoice.invoiceId : null,
+      stripeInvoiceUrl: invoice.stripeInvoiceUrl || null,
+      payslip: null,
+      status:
+        invoice.status === "paid"
+          ? "Successful"
+          : invoice.status === "failed"
+            ? "Failed"
+            : "Pending",
+    })),
+    [finance.currency, finance.invoices],
+  );
+  const livePayouts = useMemo(
+    () => [
+      ...finance.payouts.map((payout) => ({
+      id: payout.payoutId,
+      name: payout.caregiverName || "Caregiver",
+      personId: payout.caregiverId,
+      image: caregiverSarah,
+      service: "Caregiver withdrawal",
+      date: new Date(payout.requestedAt).toLocaleString(),
+      amount: payout.amount,
+      currency: payout.currency || finance.currency,
+      method: payout.method || "bKash",
+      kind: "payout",
+      payslip:
+        payout.status === "paid"
+          ? { type: "payout", id: payout.payoutId }
+          : null,
+      status:
+        payout.status === "paid"
+          ? "Successful"
+          : payout.status === "failed"
+            ? "Failed"
+            : payout.status === "processing"
+              ? "On Hold"
+              : "Pending",
+      })),
+      ...(finance.caregiverLedger || [])
+        .filter((entry) => entry.paymentStatus === "paid")
+        .map((entry) => ({
+          id: entry.ledgerId,
+          name: entry.caregiverName || "Caregiver",
+          personId: entry.caregiverId,
+          image: caregiverSarah,
+          service:
+            entry.description ||
+            `Care payment for ${entry.clientName || "client"}`,
+          date: new Date(entry.paidAt || entry.createdAt).toLocaleString(),
+          amount: entry.amount,
+          currency: entry.currency || finance.currency,
+          method: entry.paymentMethod || "Manual",
+          kind: "earning",
+          payslip: { type: "earning", id: entry.ledgerId },
+          status: "Successful",
+        })),
+    ],
+    [finance.caregiverLedger, finance.currency, finance.payouts],
+  );
+  const source = useMemo(
+    () => tab === "clients"
+      ? [...liveInvoices, ...clientInvoices.slice(0, 0)]
+      : [...livePayouts, ...caregiverPayouts.slice(0, 0)],
+    [liveInvoices, livePayouts, tab],
+  );
+  const dashboardMetrics = metrics.map((metric) => ({
+    ...metric,
+    value: formatMoney({
+      "Gross Client Billing": finance.grossBilling,
+      "Caregiver Payouts": finance.caregiverPayouts,
+      "Platform Net Revenue": finance.platformNetRevenue,
+      "Pending Payouts": finance.pendingPayouts,
+    }[metric.label] || 0, finance.currency),
+    change:
+      ({
+        "Gross Client Billing": "Successful client payments",
+        "Caregiver Payouts": "Completed caregiver payouts",
+        "Platform Net Revenue": "Accrued platform share",
+        "Pending Payouts":
+          `${finance.pendingPayoutCount || 0} unpaid earnings`,
+      })[metric.label],
+  }));
   const rows = useMemo(
     () =>
       source.filter((item) => {
@@ -186,6 +328,41 @@ const AdminFinance = () => {
     window.setTimeout(() => setNotice(""), 3000);
   };
 
+  const processPayout = async (item) => {
+    if (
+      !window.confirm(
+        `Confirm ${formatMoney(item.amount, item.currency || finance.currency)} payout to ${item.name} by ${item.method}?`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await updateAdminPayout(item.id, "paid");
+      setFinance(await getAdminFinanceOverview());
+      flash(`Payout ${item.id} was marked paid and its payslip is ready.`);
+    } catch (error) {
+      flash(error.message);
+    }
+  };
+
+  const downloadPayslip = (item) => {
+    if (!item.payslip) {
+      flash("The payslip becomes available after payment completes.");
+      return;
+    }
+    downloadPaymentPayslip(item.payslip.type, item.payslip.id)
+      .catch((error) => flash(error.message));
+  };
+
+  const downloadInvoice = (item) => {
+    if (!item.swiftopsInvoiceId) {
+      flash("The SwiftOpsBD invoice is available after client payment.");
+      return;
+    }
+    downloadSwiftOpsInvoice(item.swiftopsInvoiceId)
+      .catch((error) => flash(error.message));
+  };
+
   return (
     <div className="mx-auto max-w-[1380px] p-4 sm:p-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end">
@@ -199,6 +376,13 @@ const AdminFinance = () => {
           </p>
         </div>
         <div className="flex gap-2 lg:ml-auto">
+          <button
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white sm:flex-none"
+            type="button"
+            onClick={() => setPayoutOpen(true)}
+          >
+            <Banknote className="size-4" /> Pay Caregiver
+          </button>
           <button
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#aeb7c8] bg-white px-4 py-2.5 text-sm font-semibold text-[#0649ad] sm:flex-none"
             type="button"
@@ -226,7 +410,7 @@ const AdminFinance = () => {
       )}
 
       <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {metrics.map(({ label, value, change, icon: Icon, tone }) => (
+        {dashboardMetrics.map(({ label, value, change, icon: Icon, tone }) => (
           <article
             className="rounded-xl border-2 border-[#d0d6e2] bg-white p-4 shadow-sm sm:p-5"
             key={label}
@@ -255,7 +439,32 @@ const AdminFinance = () => {
         ))}
       </section>
 
-      <ReconciliationChart />
+      <section className="mt-4 grid gap-3 rounded-xl border border-[#c8cfde] bg-[#eef3ff] p-4 sm:grid-cols-4">
+        <SettlementStat
+          label="Deposits received"
+          value={finance.agreements.filter(
+            (item) => item.depositStatus === "paid",
+          ).length}
+        />
+        <SettlementStat
+          label="Balances due"
+          value={finance.agreements.filter(
+            (item) => item.balanceStatus === "pending",
+          ).length}
+        />
+        <SettlementStat
+          label="Settled plans"
+          value={finance.agreements.filter(
+            (item) => item.settlementStatus === "completed",
+          ).length}
+        />
+        <SettlementStat
+          label="Caregiver liability"
+          value={formatMoney(finance.caregiverLiability || 0, finance.currency)}
+        />
+      </section>
+
+      <ReconciliationChart data={finance.monthlyReconciliation || []} currency={finance.currency} />
 
       <section className="mt-6 overflow-hidden rounded-xl border border-[#c8cfde] bg-white">
         <div className="flex flex-col gap-3 border-b border-[#c8cfde] p-4 sm:flex-row sm:items-center sm:px-6">
@@ -324,7 +533,14 @@ const AdminFinance = () => {
             </thead>
             <tbody>
               {rows.map((item) => (
-                <FinanceRow item={item} key={item.id} flash={flash} />
+                <FinanceRow
+                  item={item}
+                  key={item.id}
+                  flash={flash}
+                  onPay={processPayout}
+                  onDownload={downloadPayslip}
+                  onDownloadInvoice={downloadInvoice}
+                />
               ))}
             </tbody>
           </table>
@@ -332,7 +548,14 @@ const AdminFinance = () => {
 
         <div className="divide-y divide-[#d7dce7] md:hidden">
           {rows.map((item) => (
-            <FinanceCard item={item} key={item.id} flash={flash} />
+            <FinanceCard
+              item={item}
+              key={item.id}
+              flash={flash}
+              onPay={processPayout}
+              onDownload={downloadPayslip}
+              onDownloadInvoice={downloadInvoice}
+            />
           ))}
         </div>
         {!rows.length && (
@@ -359,12 +582,41 @@ const AdminFinance = () => {
 
       {invoiceOpen && (
         <InvoiceModal
+          clients={clients}
           onClose={() => setInvoiceOpen(false)}
-          onCreated={() => {
-            setInvoiceOpen(false);
-            flash(
-              "Draft invoice created locally. It is ready to connect to the billing API.",
-            );
+          onCreated={async (invoice) => {
+            try {
+              await createAdminInvoice(invoice);
+              setFinance(await getAdminFinanceOverview());
+              setInvoiceOpen(false);
+              flash("Client invoice created and published to their wallet.");
+            } catch (error) {
+              flash(error.message);
+            }
+          }}
+        />
+      )}
+      {payoutOpen && (
+        <CaregiverPaymentModal
+          quotes={payoutQuotes}
+          onClose={() => setPayoutOpen(false)}
+          onPaid={async (payment) => {
+            try {
+              await createAdminAssignmentPayout(payment);
+              const [overview, quotes] = await Promise.all([
+                getAdminFinanceOverview(),
+                listAdminAssignmentPayoutQuotes(),
+              ]);
+              setFinance(overview);
+              setPayoutQuotes(quotes);
+              setPayoutOpen(false);
+              setTab("caregivers");
+              flash(
+                "Caregiver payment recorded. It is now visible in their wallet with a downloadable payslip.",
+              );
+            } catch (error) {
+              flash(error.message);
+            }
           }}
         />
       )}
@@ -372,10 +624,24 @@ const AdminFinance = () => {
   );
 };
 
-const ReconciliationChart = () => {
-  const billing = [58, 68, 62, 76, 81, 77, 86, 91, 96, 93, 101];
-  const payouts = [39, 46, 41, 55, 61, 57, 66, 73, 78, 75, 83];
-  const margin = billing.map((value, index) => value - payouts[index]);
+const ReconciliationChart = ({ data, currency }) => {
+  const maximum = Math.max(
+    1,
+    ...data.flatMap((item) => [
+      Number(item.clientBilling || 0),
+      Number(item.caregiverPayout || 0),
+      Number(item.platformMargin || 0),
+    ]),
+  );
+  const barHeight = (value) =>
+    value > 0 ? Math.max(4, (Number(value) / maximum) * 100) : 0;
+  const compactMoney = (value) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(Number(value || 0));
   return (
     <section className="mt-6 rounded-xl border border-[#c8cfde] bg-white p-4 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -391,37 +657,45 @@ const ReconciliationChart = () => {
           <Legend color="bg-[#0b1e31]">Platform Margin</Legend>
         </div>
       </div>
-      <div className="mt-6 flex h-52 items-end gap-2 border-b border-[#c8cfde] sm:h-64 sm:gap-4">
-        {billing.map((value, index) => (
+      <div className="mt-6 overflow-x-auto pb-6">
+        <div className="flex h-52 min-w-[720px] items-end gap-3 border-b border-[#c8cfde] sm:h-64">
+          {data.map((item) => (
           <div
-            className="group relative flex h-full flex-1 items-end"
-            key={value}
+            className="group relative flex h-full min-w-12 flex-1 items-end justify-center gap-1"
+            key={item.month}
           >
             <span
-              className="absolute bottom-0 w-full rounded-t bg-[#0755b7]/70"
-              style={{ height: `${value}%` }}
+              className="w-2.5 rounded-t bg-[#0755b7] sm:w-4"
+              style={{ height: `${barHeight(item.clientBilling)}%` }}
             />
             <span
-              className="absolute bottom-0 w-full rounded-t bg-emerald-500/80"
-              style={{ height: `${payouts[index]}%` }}
+              className="w-2.5 rounded-t bg-emerald-500 sm:w-4"
+              style={{ height: `${barHeight(item.caregiverPayout)}%` }}
             />
             <span
-              className="absolute bottom-0 w-full rounded-t bg-[#0b1e31]"
-              style={{ height: `${margin[index] * 1.8}%` }}
+              className="w-2.5 rounded-t bg-[#0b1e31] sm:w-4"
+              style={{ height: `${barHeight(item.platformMargin)}%` }}
             />
-            <span className="invisible absolute -top-1 left-1/2 z-10 -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[9px] whitespace-nowrap text-white group-hover:visible">
-              Billing ৳{value}0k
+            <span className="invisible absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 rounded bg-slate-900 px-3 py-2 text-[9px] leading-4 whitespace-nowrap text-white shadow-xl group-hover:visible">
+              <b className="block">{item.label}</b>
+              Client billing: {compactMoney(item.clientBilling)}
+              <br />
+              Caregiver payout: {compactMoney(item.caregiverPayout)}
+              <br />
+              Platform margin: {compactMoney(item.platformMargin)}
             </span>
+            <small className="absolute top-full mt-2 text-[9px] whitespace-nowrap text-[#606878]">
+              {item.label}
+            </small>
           </div>
-        ))}
+          ))}
+        </div>
       </div>
-      <div className="mt-2 flex justify-between text-[9px] uppercase text-[#606878] sm:text-[10px]">
-        <span>Nov 25</span>
-        <span>Jan 26</span>
-        <span>Mar 26</span>
-        <span>May 26</span>
-        <span>Jul 26</span>
-      </div>
+      {!data.length && (
+        <p className="py-10 text-center text-sm text-[#606878]">
+          Monthly finance data will appear after the first completed payment.
+        </p>
+      )}
     </section>
   );
 };
@@ -430,6 +704,14 @@ const Legend = ({ color, children }) => (
   <span className="flex items-center gap-1.5">
     <i className={`size-2.5 rounded-full ${color}`} />
     {children}
+  </span>
+);
+const SettlementStat = ({ label, value }) => (
+  <span className="rounded-lg bg-white px-4 py-3 shadow-sm">
+    <small className="block text-[10px] font-semibold uppercase tracking-wide text-[#687184]">
+      {label}
+    </small>
+    <b className="mt-1 block text-lg text-[#0649ad]">{value}</b>
   </span>
 );
 const TabButton = ({ active, children, onClick }) => (
@@ -442,13 +724,27 @@ const TabButton = ({ active, children, onClick }) => (
   </button>
 );
 
+const PersonPhoto = ({ item }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <span className="relative inline-grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#eef3fb] text-[#91a0b8]">
+      {!loaded && <UserRound className="size-5" aria-hidden="true" />}
+      {item.image && (
+        <img
+          className={`absolute inset-0 size-full object-cover transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"}`}
+          src={item.image}
+          alt=""
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(false)}
+        />
+      )}
+    </span>
+  );
+};
+
 const Person = ({ item }) => (
   <div className="flex items-center gap-3">
-    <img
-      className="size-10 rounded-full object-cover"
-      src={item.image}
-      alt=""
-    />
+    <PersonPhoto item={item} />
     <span>
       <b className="block">{item.name}</b>
       <small className="text-[#606878]">{item.personId}</small>
@@ -469,7 +765,13 @@ const Method = ({ method }) =>
     method
   );
 
-const FinanceRow = ({ item, flash }) => (
+const FinanceRow = ({
+  item,
+  flash,
+  onPay,
+  onDownload,
+  onDownloadInvoice,
+}) => (
   <tr className="border-t border-[#d7dce7] hover:bg-[#f9fbff]">
     <td className="px-6 py-4 font-semibold text-[#0755b7]">#{item.id}</td>
     <td className="px-4 py-4">
@@ -477,7 +779,7 @@ const FinanceRow = ({ item, flash }) => (
     </td>
     <td className="px-4 py-4">{item.service}</td>
     <td className="px-4 py-4 text-[#515867]">{item.date}</td>
-    <td className="px-4 py-4 font-semibold">{formatMoney(item.amount)}</td>
+    <td className="px-4 py-4 font-semibold">{formatMoney(item.amount, item.currency)}</td>
     <td className="px-4 py-4">
       <Method method={item.method} />
     </td>
@@ -492,15 +794,33 @@ const FinanceRow = ({ item, flash }) => (
       <div className="flex justify-end gap-1">
         <Action
           icon={FileText}
-          label="View record"
-          onClick={() => flash(`${item.id} opened for review.`)}
+          label={item.stripeInvoiceUrl ? "View Stripe invoice" : "View record"}
+          onClick={() => item.stripeInvoiceUrl
+            ? window.open(item.stripeInvoiceUrl, "_blank", "noopener,noreferrer")
+            : flash(`${item.id} opened for review.`)}
         />
         <Action
-          icon={item.status === "Failed" ? RefreshCw : ArrowDownToLine}
-          label={item.status === "Failed" ? "Retry" : "Download"}
-          onClick={() =>
-            flash(`${item.id}: action is ready for backend processing.`)
+          icon={
+            item.kind === "payout" && item.status === "Pending"
+              ? Banknote
+              : item.status === "Failed"
+                ? RefreshCw
+                : ArrowDownToLine
           }
+          label={
+            item.kind === "payout" && item.status === "Pending"
+              ? "Pay caregiver"
+              : item.status === "Failed"
+                ? "Retry"
+                : item.swiftopsInvoiceId
+                  ? "Download SwiftOpsBD invoice"
+                  : "Download payslip"
+          }
+          onClick={() => item.kind === "payout" && item.status === "Pending"
+            ? onPay(item)
+            : item.swiftopsInvoiceId
+              ? onDownloadInvoice(item)
+              : onDownload(item)}
         />
         <Action
           icon={CircleAlert}
@@ -513,7 +833,13 @@ const FinanceRow = ({ item, flash }) => (
   </tr>
 );
 
-const FinanceCard = ({ item, flash }) => (
+const FinanceCard = ({
+  item,
+  flash,
+  onPay,
+  onDownload,
+  onDownloadInvoice,
+}) => (
   <article className="p-4">
     <div className="flex items-start justify-between gap-3">
       <Person item={item} />
@@ -530,7 +856,7 @@ const FinanceCard = ({ item, flash }) => (
       </span>
       <span>
         <small className="block text-[#687184]">Amount</small>
-        <b>{formatMoney(item.amount)}</b>
+        <b>{formatMoney(item.amount, item.currency)}</b>
       </span>
       <span>
         <small className="block text-[#687184]">Description</small>
@@ -543,13 +869,52 @@ const FinanceCard = ({ item, flash }) => (
     </div>
     <div className="mt-3 flex items-center">
       <small className="text-[#687184]">{item.date}</small>
-      <button
-        className="ml-auto rounded-lg border px-3 py-2 text-xs font-semibold text-[#0649ad]"
-        type="button"
-        onClick={() => flash(`${item.id} opened for review.`)}
-      >
-        View details
-      </button>
+      <div className="ml-auto flex gap-2">
+        {item.kind === "payout" && item.status === "Pending" && (
+          <button
+            className="rounded-lg bg-[#0755b7] px-3 py-2 text-xs font-semibold text-white"
+            type="button"
+            onClick={() => onPay(item)}
+          >
+            Pay now
+          </button>
+        )}
+        {item.payslip && (
+          <button
+            className="rounded-lg border px-3 py-2 text-xs font-semibold text-[#0649ad]"
+            type="button"
+            onClick={() => onDownload(item)}
+          >
+            Payslip
+          </button>
+        )}
+        {item.swiftopsInvoiceId && (
+          <button
+            className="rounded-lg border px-3 py-2 text-xs font-semibold text-[#0649ad]"
+            type="button"
+            onClick={() => onDownloadInvoice(item)}
+          >
+            SwiftOpsBD Invoice
+          </button>
+        )}
+        {item.stripeInvoiceUrl && (
+          <a
+            className="rounded-lg border px-3 py-2 text-xs font-semibold text-violet-700"
+            href={item.stripeInvoiceUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Stripe Invoice
+          </a>
+        )}
+        <button
+          className="rounded-lg border px-3 py-2 text-xs font-semibold text-[#0649ad]"
+          type="button"
+          onClick={() => flash(`${item.id} opened for review.`)}
+        >
+          Details
+        </button>
+      </div>
     </div>
   </article>
 );
@@ -566,7 +931,180 @@ const Action = ({ danger, icon: Icon, label, onClick }) => (
   </button>
 );
 
-const InvoiceModal = ({ onClose, onCreated }) => (
+const CaregiverPaymentModal = ({ quotes, onClose, onPaid }) => {
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
+  const selectedQuote = quotes.find(
+    (quote) => quote.assignmentId === selectedAssignmentId,
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="caregiver-payment-title"
+    >
+      <form
+        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          if (!selectedQuote?.ready) return;
+          onPaid({
+            assignmentId: selectedQuote.assignmentId,
+            paymentMethod: values.get("paymentMethod"),
+            paymentReference: values.get("paymentReference"),
+          });
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div>
+            <h2 id="caregiver-payment-title" className="text-xl font-semibold">
+              Record Caregiver Payment
+            </h2>
+            <p className="mt-1 text-sm text-[#606878]">
+              The payable amount comes from the client’s locked care plan.
+              Administrators cannot override the caregiver or platform share.
+            </p>
+          </div>
+          <button
+            className="ml-auto p-2"
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <Field label="Caregiver and client assignment">
+          <select
+            name="assignmentId"
+            required
+            value={selectedAssignmentId}
+            onChange={(event) => setSelectedAssignmentId(event.target.value)}
+          >
+            <option value="">Select assignment</option>
+            {quotes.map((quote) => (
+              <option
+                value={quote.assignmentId}
+                key={quote.agreementId}
+              >
+                {quote.caregiverName || "Caregiver"} →{" "}
+                {quote.clientName || "Client"} ·{" "}
+                {quote.careType || "Care service"}
+                {quote.ready ? "" : " · Not ready"}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        {selectedQuote && (
+          <section className="mt-4 rounded-xl border border-[#c8cfde] bg-[#f4f7fc] p-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <PaymentQuoteValue
+                label="Client plan total"
+                value={formatMoney(selectedQuote.clientTotal, selectedQuote.currency)}
+              />
+              <PaymentQuoteValue
+                label={`Caregiver share (${selectedQuote.caregiverSharePercent}%)`}
+                value={formatMoney(selectedQuote.caregiverAmount, selectedQuote.currency)}
+                tone="green"
+              />
+              <PaymentQuoteValue
+                label="Site retained amount"
+                value={formatMoney(selectedQuote.siteRetainedAmount, selectedQuote.currency)}
+                tone="blue"
+              />
+              <PaymentQuoteValue
+                label="Already paid"
+                value={formatMoney(selectedQuote.paidAmount, selectedQuote.currency)}
+              />
+            </div>
+            <div className="mt-4 flex items-center justify-between border-t border-[#c8cfde] pt-4">
+              <span className="text-sm font-semibold">
+                Pay caregiver now
+              </span>
+              <strong className="text-xl text-emerald-700">
+                {formatMoney(selectedQuote.payableAmount, selectedQuote.currency)}
+              </strong>
+            </div>
+            {!selectedQuote.ready && (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                {selectedQuote.blockedReason}
+              </p>
+            )}
+          </section>
+        )}
+
+        <div className="grid gap-x-4 sm:grid-cols-2">
+          <Field label="Payment method">
+            <select name="paymentMethod" required defaultValue="manual">
+              <option value="manual">Manual payment record</option>
+              <option value="bkash">bKash</option>
+              <option value="bank_transfer">Bank transfer</option>
+              <option value="cash">Cash</option>
+            </select>
+          </Field>
+        </div>
+
+        <Field label="Payment reference">
+          <input
+            name="paymentReference"
+            maxLength="120"
+            placeholder="Optional transaction or receipt number"
+          />
+        </Field>
+
+        {!quotes.length && (
+          <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            No priced caregiver/client assignments are available yet.
+          </p>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            className="rounded-lg border px-4 py-2.5 text-sm font-semibold"
+            type="button"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            className="rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            type="submit"
+            disabled={!selectedQuote?.ready}
+          >
+            Confirm {selectedQuote?.ready
+              ? `${formatMoney(selectedQuote.payableAmount, selectedQuote.currency)} Paid`
+              : "Payment"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const PaymentQuoteValue = ({ label, value, tone = "slate" }) => (
+  <span>
+    <small className="block text-[10px] font-semibold uppercase tracking-wide text-[#687184]">
+      {label}
+    </small>
+    <b
+      className={`mt-1 block ${
+        tone === "green"
+          ? "text-emerald-700"
+          : tone === "blue"
+            ? "text-[#0755b7]"
+            : "text-[#101c2d]"
+      }`}
+    >
+      {value}
+    </b>
+  </span>
+);
+
+const InvoiceModal = ({ clients, onClose, onCreated }) => (
   <div
     className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/50 p-4"
     role="dialog"
@@ -576,7 +1114,14 @@ const InvoiceModal = ({ onClose, onCreated }) => (
       className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
       onSubmit={(event) => {
         event.preventDefault();
-        onCreated();
+        const values = new FormData(event.currentTarget);
+        onCreated({
+          clientId: values.get("clientId"),
+          description: values.get("description"),
+          subtotal: Number(values.get("subtotal")),
+          dueAt: values.get("dueAt"),
+          note: values.get("note"),
+        });
       }}
     >
       <div className="flex items-center">
@@ -597,14 +1142,17 @@ const InvoiceModal = ({ onClose, onCreated }) => (
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="Client">
-          <select required>
+          <select name="clientId" required>
             <option value="">Select client</option>
-            <option>Mariam Begum</option>
-            <option>Ahmed Sharif</option>
+            {clients.map((client) => (
+              <option value={client.clientId} key={client.clientId}>
+                {client.profile?.fullName || client.account?.email || client.clientId}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Service">
-          <select required>
+          <select name="description" required>
             <option value="">Select service</option>
             <option>Post-Op Nursing</option>
             <option>Physiotherapy</option>
@@ -612,14 +1160,15 @@ const InvoiceModal = ({ onClose, onCreated }) => (
           </select>
         </Field>
         <Field label="Amount (BDT)">
-          <input required min="1" type="number" placeholder="0.00" />
+          <input name="subtotal" required min="1" type="number" placeholder="0.00" />
         </Field>
         <Field label="Due date">
-          <input required type="date" />
+          <input name="dueAt" required type="date" />
         </Field>
       </div>
       <Field label="Billing note">
         <textarea
+          name="note"
           className="min-h-24"
           placeholder="Optional note for the client"
         />
