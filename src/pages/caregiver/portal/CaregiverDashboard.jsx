@@ -7,16 +7,24 @@ import {
   Star,
   TriangleAlert,
 } from "lucide-react";
-import { caregiverAccount } from "../../../data/caregiverPortalData";
 import CaregiverCard from "../../../components/caregiver/portal/CaregiverCard";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  clockInCaregiver,
-  clockOutCaregiver,
-  getActiveShift,
-  getTodayCompletedShiftSeconds,
-} from "../../../services/shiftTrackingService";
+  clockInCaregiverShift,
+  clockOutCaregiverShift,
+  getActiveCaregiverShift,
+  listCaregiverShifts,
+  updateCaregiverShiftLocation,
+} from "../../../services/caregiverShiftService";
+import {
+  getBrowserLocation,
+  watchBrowserLocation,
+} from "../../../services/browserLocationService";
+import { listMyVisits } from "../../../services/assignmentService";
+import { listAvailableCareRequests } from "../../../services/careRequestService";
+import { getPaymentSummary } from "../../../services/paymentService";
+import useAuth from "../../../hooks/useAuth";
 
 const formatDuration = (totalSeconds) => {
   const hours = Math.floor(totalSeconds / 3600);
@@ -31,11 +39,56 @@ const formatTime = (value) => new Date(value).toLocaleTimeString([], {
   second: "2-digit",
 });
 
+const buildEarningsBuckets = (ledger = [], now = new Date()) => {
+  const buckets = Array.from({ length: 12 }, (_, index) => {
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    end.setDate(end.getDate() - (11 - index) * 7);
+    const start = new Date(end);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - 6);
+    return {
+      key: start.toISOString(),
+      label: start.toLocaleDateString([], { month: "short", day: "numeric" }),
+      start,
+      end,
+      amount: 0,
+    };
+  });
+  ledger
+    .filter(
+      (entry) => entry.type === "earning" && entry.status === "completed",
+    )
+    .forEach((entry) => {
+      const occurredAt = new Date(entry.createdAt || entry.updatedAt || 0);
+      const bucket = buckets.find(
+        (item) => occurredAt >= item.start && occurredAt <= item.end,
+      );
+      if (bucket) bucket.amount += Number(entry.amount || 0);
+    });
+  return buckets;
+};
+
 const CaregiverDashboard = () => {
-  const [activeShift, setActiveShift] = useState(() => getActiveShift());
+  const { account, user } = useAuth();
+  const caregiverName =
+    user?.displayName ||
+    account?.displayName ||
+    user?.email?.split("@")[0] ||
+    "Caregiver";
+  const [activeShift, setActiveShift] = useState(null);
   const [now, setNow] = useState(() => Date.now());
-  const [todayCompletedSeconds, setTodayCompletedSeconds] = useState(() => getTodayCompletedShiftSeconds());
+  const [todayCompletedSeconds, setTodayCompletedSeconds] = useState(0);
   const [lastCompletedShift, setLastCompletedShift] = useState(null);
+  const [shiftSaving, setShiftSaving] = useState(false);
+  const [shiftNotice, setShiftNotice] = useState("");
+  const [agendaVisits, setAgendaVisits] = useState([]);
+  const [allVisits, setAllVisits] = useState([]);
+  const [wallet, setWallet] = useState({
+    completedEarnings: 0,
+    ledger: [],
+  });
+  const [pendingRequests, setPendingRequests] = useState(0);
   const onShift = Boolean(activeShift);
   const activeSeconds = activeShift
     ? Math.max(0, Math.floor((now - new Date(activeShift.startedAt).getTime()) / 1000))
@@ -53,25 +106,157 @@ const CaregiverDashboard = () => {
     return () => window.clearInterval(timer);
   }, []);
 
-  const handleShiftAction = () => {
-    if (activeShift) {
-      const completedShift = clockOutCaregiver();
-      setLastCompletedShift(completedShift);
-      setActiveShift(null);
-      setTodayCompletedSeconds(getTodayCompletedShiftSeconds());
+  useEffect(() => {
+    if (!activeShift?.shiftId) return undefined;
+    let mounted = true;
+    let lastSentAt = 0;
+    const stopWatching = watchBrowserLocation(async (location) => {
+      const currentTime = Date.now();
+      if (currentTime - lastSentAt < 30000) return;
+      lastSentAt = currentTime;
+      try {
+        const updated = await updateCaregiverShiftLocation(location);
+        if (mounted) setActiveShift(updated);
+      } catch (error) {
+        if (mounted) setShiftNotice(`On-duty GPS paused: ${error.message}`);
+      }
+    });
+    return () => {
+      mounted = false;
+      stopWatching();
+    };
+  }, [activeShift?.shiftId]);
+
+  useEffect(() => {
+    let active = true;
+    const loadAgenda = () => {
+      Promise.allSettled([
+        listMyVisits(),
+        getPaymentSummary(),
+        listAvailableCareRequests(),
+      ])
+        .then(([visitResult, paymentResult, requestResult]) => {
+          if (!active) return;
+          if (visitResult.status === "fulfilled") {
+            setAllVisits(visitResult.value);
+            setAgendaVisits(
+              visitResult.value
+                .filter((visit) =>
+                  ["scheduled", "active"].includes(visit.status),
+                )
+                .slice(0, 5),
+            );
+          }
+          if (paymentResult.status === "fulfilled") {
+            setWallet(paymentResult.value);
+          }
+          if (requestResult.status === "fulfilled") {
+            setPendingRequests(requestResult.value.length);
+          }
+          const failed = [visitResult, paymentResult, requestResult].find(
+            (result) => result.status === "rejected",
+          );
+          if (failed) setShiftNotice(failed.reason.message);
+        });
+    };
+    loadAgenda();
+    const refreshTimer = window.setInterval(loadAgenda, 15000);
+    window.addEventListener("focus", loadAgenda);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", loadAgenda);
+    };
+  }, []);
+
+  const completedVisits = allVisits.filter(
+    (visit) => visit.status === "completed",
+  );
+  const hoursWorked = completedVisits.reduce(
+    (sum, visit) => sum + Number(visit.durationSeconds || 0),
+    0,
+  ) / 3600;
+  const ratings = completedVisits
+    .map((visit) =>
+      Number(visit.patientRating ?? visit.clientRating ?? visit.rating),
+    )
+    .filter((rating) => Number.isFinite(rating) && rating > 0 && rating <= 5);
+  const averageRating = ratings.length
+    ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+    : 0;
+  const earningsBuckets = buildEarningsBuckets(wallet.ledger || []);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([getActiveCaregiverShift(), listCaregiverShifts()])
+      .then(([currentShift, shifts]) => {
+        if (!active) return;
+        const today = new Date();
+        const completedSeconds = shifts
+          .filter((shift) => {
+            if (!shift.endedAt) return false;
+            const endedAt = new Date(shift.endedAt);
+            return (
+              endedAt.getFullYear() === today.getFullYear() &&
+              endedAt.getMonth() === today.getMonth() &&
+              endedAt.getDate() === today.getDate()
+            );
+          })
+          .reduce(
+            (total, shift) => total + (shift.durationSeconds || 0),
+            0,
+          );
+        setActiveShift(currentShift);
+        setTodayCompletedSeconds(completedSeconds);
+      })
+      .catch((error) => {
+        if (active) setShiftNotice(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleShiftAction = async () => {
+    if (shiftSaving) return;
+    setShiftSaving(true);
+    setShiftNotice("Requesting location...");
+    try {
+      const location = await getBrowserLocation();
+      if (activeShift) {
+        const completedShift = await clockOutCaregiverShift(location);
+        setLastCompletedShift(completedShift);
+        setActiveShift(null);
+        setTodayCompletedSeconds(
+          (seconds) => seconds + (completedShift.durationSeconds || 0),
+        );
+        setShiftNotice(
+          location
+            ? "Shift clocked out with GPS."
+            : "Shift clocked out. GPS was unavailable.",
+        );
+      } else {
+        const shift = await clockInCaregiverShift(location);
+        setLastCompletedShift(null);
+        setActiveShift(shift);
+        setShiftNotice(
+          location
+            ? "Shift clocked in with GPS."
+            : "Shift clocked in. GPS was unavailable.",
+        );
+      }
       setNow(Date.now());
-      return;
+    } catch (error) {
+      setShiftNotice(error.message);
+    } finally {
+      setShiftSaving(false);
     }
-    const shift = clockInCaregiver({ caregiverName: caregiverAccount.name });
-    setLastCompletedShift(null);
-    setActiveShift(shift);
-    setNow(Date.now());
   };
   return (
     <div className="mx-auto max-w-[1020px] space-y-7 p-5 sm:p-7">
       <header>
         <h1 className="text-3xl font-semibold sm:text-4xl">
-          {greeting}, {caregiverAccount.name.split(" ")[0]}
+          {greeting}, {caregiverName.split(" ")[0]}
         </h1>
         <p className="mt-1 text-[#4c5261]">
           Here is your overview for today, {currentDate.toLocaleDateString([], {
@@ -89,52 +274,83 @@ const CaregiverDashboard = () => {
           onShift={onShift}
           todayTotalSeconds={todayTotalSeconds}
           onShiftAction={handleShiftAction}
+          shiftSaving={shiftSaving}
         />
       </div>
+      {shiftNotice && (
+        <p className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          {shiftNotice}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Metric
           icon={CalendarCheck}
           label="Total Visits"
-          value="142"
-          change="+12%"
+          value={completedVisits.length}
+          change="Completed"
         />
-        <Metric icon={Clock3} label="Hours Worked" value="528" change="+5%" />
+        <Metric
+          icon={Clock3}
+          label="Hours Worked"
+          value={hoursWorked.toFixed(1)}
+          change="Verified"
+        />
         <Metric
           icon={Banknote}
           label="Net Earnings"
-          value="৳42,850"
-          change="+8%"
+          value={`$${Number(wallet.completedEarnings || 0).toLocaleString("en-US")}`}
+          change="Lifetime"
           green
         />
         <Metric
           icon={Star}
           label="Avg. Patient Rating"
-          value="4.9/5.0"
-          change="Stable"
+          value={ratings.length ? `${averageRating.toFixed(1)}/5.0` : "—/5.0"}
+          change={`${ratings.length} rating${ratings.length === 1 ? "" : "s"}`}
           amber
         />
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_305px]">
         <CaregiverCard className="p-6">
           <h2 className="text-xl font-semibold">Earnings Analytics</h2>
-          <div className="mt-8 flex h-52 items-end gap-1 border-b border-[#c5cad8] sm:h-64 sm:gap-2">
-            {[35, 52, 68, 95, 46, 62, 78, 100, 40, 58, 74, 88, 52, 35].map(
-              (height, index) => (
+          {earningsBuckets.some((bucket) => bucket.amount > 0) ? (
+            <>
+              <div className="mt-8 flex h-52 items-end gap-1 border-b border-[#c5cad8] sm:h-64 sm:gap-2">
+                {earningsBuckets.map((bucket) => {
+                  const maximum = Math.max(
+                    ...earningsBuckets.map((item) => item.amount),
+                    1,
+                  );
+                  return (
                 <span
-                  className={`flex-1 ${index % 4 === 3 ? "bg-[#0649ad]" : "bg-[#dce8ff]"}`}
-                  style={{ height: `${height}%` }}
-                  key={index}
+                  className="group relative flex-1 bg-[#0755d3]"
+                  style={{
+                    height: `${Math.max(4, (bucket.amount / maximum) * 100)}%`,
+                  }}
+                  key={bucket.key}
+                  title={`${bucket.label}: $${bucket.amount.toLocaleString("en-US")}`}
                 />
-              ),
-            )}
-          </div>
-          <div className="mt-2 flex justify-between text-[10px] uppercase text-[#4c5261]">
-            <span>Oct 12</span>
-            <span>Oct 19</span>
-            <span>Oct 26</span>
-            <span>Nov 02</span>
-            <span>Nov 11</span>
-          </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 flex justify-between text-[10px] uppercase text-[#4c5261]">
+                {earningsBuckets
+                  .filter((_, index) => index % 3 === 0 || index === 11)
+                  .map((bucket) => (
+                    <span key={bucket.key}>{bucket.label}</span>
+                  ))}
+              </div>
+            </>
+          ) : (
+            <div className="mt-8 grid h-64 place-items-center rounded-xl border border-dashed border-[#c5cad8] bg-[#f8faff] text-center text-sm text-[#667085]">
+              <p>
+                No completed earnings yet.
+                <span className="mt-1 block">
+                  This chart updates after paid care services.
+                </span>
+              </p>
+            </div>
+          )}
         </CaregiverCard>
         <div className="space-y-5">
           <CaregiverCard className="hidden overflow-hidden xl:block">
@@ -178,32 +394,36 @@ const CaregiverDashboard = () => {
                 className={`mt-5 flex w-full items-center justify-center gap-2 rounded-full px-5 py-4 text-lg font-semibold text-white ${onShift ? "bg-red-600 hover:bg-red-700" : "bg-[#0755d3] hover:bg-[#0649ad]"}`}
                 type="button"
                 onClick={handleShiftAction}
+                disabled={shiftSaving}
               >
                 <Power />
-                {onShift ? "Clock Out" : "Clock In"}
+                {shiftSaving ? "Saving..." : onShift ? "Clock Out" : "Clock In"}
               </button>
               {lastCompletedShift && (
                 <p className="mt-4 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
-                  Shift completed: {formatDuration(lastCompletedShift.durationSeconds)}. Saved locally and ready for future database sync.
+                  Shift completed: {formatDuration(lastCompletedShift.durationSeconds)}. Saved to your authenticated shift history.
                 </p>
               )}
             </div>
           </CaregiverCard>
-          <div className="rounded-xl border border-red-300 bg-red-50 p-5 text-red-800">
-            <h3 className="flex gap-2 text-lg font-semibold">
-              <TriangleAlert />
-              Pending Request
-            </h3>
-            <p className="mt-2 text-sm">
-              1 new shift request for tomorrow requires your approval.
-            </p>
-            <Link
-              className="mt-3 block text-sm underline"
-              to="/caregiver/requested-clients"
-            >
-              Review Now
-            </Link>
-          </div>
+          {pendingRequests > 0 && (
+            <div className="rounded-xl border border-red-300 bg-red-50 p-5 text-red-800">
+              <h3 className="flex gap-2 text-lg font-semibold">
+                <TriangleAlert />
+                Pending Request
+              </h3>
+              <p className="mt-2 text-sm">
+                {pendingRequests} care request
+                {pendingRequests === 1 ? "" : "s"} available for review.
+              </p>
+              <Link
+                className="mt-3 block text-sm underline"
+                to="/caregiver/requested-clients"
+              >
+                Review Now
+              </Link>
+            </div>
+          )}
         </div>
       </div>
       <CaregiverCard>
@@ -211,28 +431,34 @@ const CaregiverDashboard = () => {
           <h2 className="text-xl font-semibold">Today&apos;s Agenda</h2>
           <span className="text-xs text-[#0649ad]">View Full Calendar</span>
         </div>
-        {[
-          ["09:00 AM", "Morning Routine & Meds", "Mrs. Rahman"],
-          ["14:30 PM", "Physical Therapy Assist", "Mr. Ahmed"],
-        ].map(([time, title, client], i) => (
-          <div className="flex flex-col gap-3 border-t border-[#c5cad8] p-5 sm:flex-row sm:gap-5 sm:p-6" key={time}>
-            <strong className="w-20 text-lg sm:text-xl">{time}</strong>
+        {agendaVisits.map((visit, index) => (
+          <div className="flex flex-col gap-3 border-t border-[#c5cad8] p-5 sm:flex-row sm:gap-5 sm:p-6" key={visit.visitId}>
+            <strong className="w-20 text-lg sm:text-xl">
+              {visit.scheduledStartLocal}
+            </strong>
             <div
-              className={`border-l-4 pl-4 ${i ? "border-[#c5cad8]" : "border-[#0755d3]"}`}
+              className={`border-l-4 pl-4 ${index ? "border-[#c5cad8]" : "border-[#0755d3]"}`}
             >
-              <h3 className="text-lg font-semibold">{title}</h3>
-              <p className="text-sm text-[#4c5261]">{client}</p>
-              {!i && (
-                <Link
-                  className="mt-3 inline-block rounded bg-[#0755d3] px-4 py-2 text-sm text-white"
-                  to="/caregiver/visit/jahanara"
-                >
-                  Start Visit
-                </Link>
-              )}
+              <h3 className="text-lg font-semibold">
+                {visit.careType || "Care Visit"}
+              </h3>
+              <p className="text-sm text-[#4c5261]">
+                {visit.clientName} · {visit.date}
+              </p>
+              <Link
+                className="mt-3 inline-block rounded bg-[#0755d3] px-4 py-2 text-sm text-white"
+                to={`/caregiver/visit/${visit.assignmentId}`}
+              >
+                {visit.status === "active" ? "Continue Visit" : "Start Visit"}
+              </Link>
             </div>
           </div>
         ))}
+        {!agendaVisits.length && (
+          <p className="border-t border-[#c5cad8] p-8 text-center text-sm text-[#667085]">
+            No confirmed visits are scheduled yet.
+          </p>
+        )}
       </CaregiverCard>
     </div>
   );
@@ -261,6 +487,7 @@ const MobileShiftPanel = ({
   onShift,
   todayTotalSeconds,
   onShiftAction,
+  shiftSaving,
 }) => (
   <CaregiverCard className="overflow-hidden border-[#9db7e2] shadow-sm">
     <div className="flex items-center justify-between bg-[#eef3ff] px-4 py-2.5">
@@ -301,9 +528,10 @@ const MobileShiftPanel = ({
         }`}
         type="button"
         onClick={onShiftAction}
+        disabled={shiftSaving}
       >
         <Power className="size-5" />
-        {onShift ? "Clock Out" : "Clock In"}
+        {shiftSaving ? "Saving..." : onShift ? "Clock Out" : "Clock In"}
       </button>
     </div>
   </CaregiverCard>
