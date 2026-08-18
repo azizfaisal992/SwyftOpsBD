@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
   Clock3,
   Download,
   MapPin,
@@ -10,11 +11,13 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import caregiverAllexus from "../../assets/caregiver-allexus.jpg";
 import caregiverKelly from "../../assets/caregiver-kelly.jpg";
 import caregiverSarah from "../../assets/caregiver-sarah.jpg";
 import findCareSarah from "../../assets/find-care-sarah.jpg";
+import { listAdminVisits } from "../../services/assignmentService";
 
 const INITIAL_DATE = new Date();
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -112,15 +115,21 @@ const tones = {
   green: "border-emerald-600 bg-emerald-50 text-emerald-900",
   amber: "border-amber-500 bg-amber-50 text-amber-900",
   red: "border-red-500 bg-red-50 text-red-800",
+  completed: "border-violet-600 bg-violet-50 text-violet-900",
 };
 
 const AdminSchedule = () => {
+  const navigate = useNavigate();
   const [view, setView] = useState("Week");
   const [selected, setSelected] = useState(null);
   const [caregiverFilter, setCaregiverFilter] = useState("All Caregivers");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [notice, setNotice] = useState("");
   const [currentDate, setCurrentDate] = useState(INITIAL_DATE);
+  const [scheduledAssignments, setScheduledAssignments] = useState(
+    () => assignments.slice(0, 0),
+  );
+  const [loading, setLoading] = useState(true);
 
   const currentWeekDays = useMemo(
     () => buildWeekDays(currentDate),
@@ -128,10 +137,42 @@ const AdminSchedule = () => {
   );
   const selectedDayIndex = (currentDate.getDay() + 6) % 7;
   const calendarLabel = formatCalendarLabel(currentDate, view);
+  const caregiverNames = useMemo(
+    () =>
+      [...new Set(scheduledAssignments.map((item) => item.caregiver))].sort(),
+    [scheduledAssignments],
+  );
+
+  useEffect(() => {
+    let active = true;
+    const loadVisits = async (showLoading = false) => {
+      if (showLoading) setLoading(true);
+      try {
+        const visits = await listAdminVisits(calendarRange(currentDate, view));
+        if (active) {
+          setScheduledAssignments(
+            visits.map((visit) =>
+              visitToCalendarAssignment(visit, currentWeekDays)),
+          );
+        }
+      } catch (loadError) {
+        if (active) setNotice(loadError.message);
+      } finally {
+        if (active && showLoading) setLoading(false);
+      }
+    };
+    const timer = window.setTimeout(() => loadVisits(true), 0);
+    const refreshTimer = window.setInterval(() => loadVisits(false), 30_000);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+      window.clearInterval(refreshTimer);
+    };
+  }, [currentDate, currentWeekDays, view]);
 
   const visibleAssignments = useMemo(
     () =>
-      assignments.filter((assignment) => {
+      scheduledAssignments.filter((assignment) => {
         const caregiverMatch =
           caregiverFilter === "All Caregivers" ||
           assignment.caregiver === caregiverFilter;
@@ -139,8 +180,11 @@ const AdminSchedule = () => {
           statusFilter === "All Statuses" || assignment.status === statusFilter;
         return caregiverMatch && statusMatch;
       }),
-    [caregiverFilter, statusFilter],
+    [caregiverFilter, scheduledAssignments, statusFilter],
   );
+  const pendingCount = scheduledAssignments.filter(
+    (assignment) => assignment.status === "Pending",
+  ).length;
 
   const notify = (message) => {
     setNotice(message);
@@ -183,10 +227,9 @@ const AdminSchedule = () => {
               onChange={(event) => setCaregiverFilter(event.target.value)}
             >
               <option>All Caregivers</option>
-              <option>Samuel Jackson</option>
-              <option>Elena Rodriguez</option>
-              <option>Marcus King</option>
-              <option>Rahima Khatun</option>
+              {caregiverNames.map((name) => (
+                <option key={name}>{name}</option>
+              ))}
             </select>
             <select
               className="rounded-lg border border-[#c5cad8] bg-white px-3 py-2 text-sm"
@@ -195,7 +238,10 @@ const AdminSchedule = () => {
             >
               <option>All Statuses</option>
               <option>Confirmed</option>
+              <option>Pending</option>
+              <option>Scheduled</option>
               <option>In Progress</option>
+              <option>Completed</option>
               <option>Missed</option>
               <option>Conflict</option>
             </select>
@@ -208,9 +254,7 @@ const AdminSchedule = () => {
             <button
               className="flex items-center justify-center gap-2 rounded-lg bg-[#0755d3] px-4 py-2 text-sm font-semibold text-white"
               type="button"
-              onClick={() =>
-                notify("New assignment form is ready for API integration.")
-              }
+              onClick={() => navigate("/admin/requests")}
             >
               <Plus className="size-4" /> New Assignment
             </button>
@@ -251,6 +295,7 @@ const AdminSchedule = () => {
         <div className="ml-auto hidden items-center gap-3 text-xs md:flex">
           <Legend color="bg-blue-500" label="Confirmed" />
           <Legend color="bg-emerald-500" label="In progress" />
+          <Legend color="bg-violet-500" label="Completed" />
           <Legend color="bg-red-500" label="Issue" />
         </div>
       </div>
@@ -261,6 +306,11 @@ const AdminSchedule = () => {
       )}
 
       <main className="hide-scrollbar p-4 sm:p-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+        {loading && (
+          <p className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+            Loading scheduled visits…
+          </p>
+        )}
         <div className="lg:hidden">
           <MobileAgenda
             assignments={visibleAssignments}
@@ -293,24 +343,24 @@ const AdminSchedule = () => {
         </div>
       </main>
 
-      <div className="sticky bottom-0 flex items-center gap-3 border-t border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 sm:px-6 lg:static lg:shrink-0">
+      {pendingCount > 0 && <div className="sticky bottom-0 flex items-center gap-3 border-t border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 sm:px-6 lg:static lg:shrink-0">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-amber-500 text-white">
           <AlertTriangle className="size-5" />
         </span>
         <p>
           <b className="block text-sm">
-            2 unconfirmed shifts require action before 8:00 PM
+            {pendingCount} unconfirmed shift{pendingCount === 1 ? "" : "s"} require action
           </b>
           <small>Pending assignments may cause service delays.</small>
         </p>
         <button
           className="ml-auto hidden rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white sm:block"
           type="button"
-          onClick={() => setStatusFilter("Conflict")}
+          onClick={() => setStatusFilter("Pending")}
         >
           Review Issues
         </button>
-      </div>
+      </div>}
       {selected && (
         <AssignmentDrawer
           assignment={selected}
@@ -395,6 +445,11 @@ const CalendarEvent = ({ assignment, onClick }) => (
         <b className="mt-1 block text-sm">{assignment.caregiver}</b>
         <span className="block text-xs">{assignment.client}</span>
         <span className="mt-2 block text-[10px]">{assignment.time}</span>
+        {assignment.status === "Completed" && (
+          <span className="mt-2 flex items-center gap-1 text-[10px] font-semibold">
+            <CheckCircle2 className="size-3" /> Completed
+          </span>
+        )}
       </>
     )}
   </button>
@@ -431,6 +486,11 @@ const MobileAgenda = ({ assignments: items, days, onSelect }) => (
                   <small className="text-[#606878]">
                     {assignment.client} • {assignment.caregiver}
                   </small>
+                  {assignment.status === "Completed" && (
+                    <small className="mt-1 flex items-center gap-1 font-semibold text-violet-700">
+                      <CheckCircle2 className="size-3.5" /> Tasks completed
+                    </small>
+                  )}
                 </div>
                 <ChevronRight className="size-5" />
               </button>
@@ -444,7 +504,6 @@ const MobileAgenda = ({ assignments: items, days, onSelect }) => (
 
 const MonthView = ({ assignments: items, currentDate, onSelect }) => {
   const cells = buildMonthCells(currentDate);
-  const activeWeek = buildWeekDays(currentDate);
   return (
     <section className="rounded-xl border border-[#c5cad8] bg-white p-5">
       <div className="grid grid-cols-7 border-b border-[#c5cad8] pb-3 text-center text-xs font-semibold uppercase text-[#606878]">
@@ -454,13 +513,7 @@ const MonthView = ({ assignments: items, currentDate, onSelect }) => {
       </div>
       <div className="mt-3 grid grid-cols-7 gap-2">
         {cells.map((cell) => {
-          const activeDayIndex = activeWeek.findIndex(
-            (day) => day.key === cell.key,
-          );
-          const dayItems =
-            activeDayIndex >= 0
-              ? items.filter((item) => item.day === activeDayIndex)
-              : [];
+          const dayItems = items.filter((item) => item.date === cell.key);
           return (
             <div
               className={`min-h-28 rounded-lg border p-2 ${cell.isToday ? "border-[#0755d3] bg-blue-50" : cell.inMonth ? "border-[#d7dbe7]" : "border-transparent bg-[#f8f9fc] text-slate-400"}`}
@@ -546,11 +599,11 @@ const AssignmentDrawer = ({ assignment, onClose, onNotify }) => (
             <small className="ml-auto text-emerald-700">Updated today</small>
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <img
-              className="size-12 rounded-full object-cover"
-              src={assignment.caregiverImage}
-              alt=""
-            />
+            {assignment.caregiverImage ? (
+              <img className="size-12 rounded-full object-cover" src={assignment.caregiverImage} alt="" />
+            ) : (
+              <span className="grid size-12 place-items-center rounded-full bg-[#dce8ff] font-bold text-[#0649ad]">{assignment.caregiver?.slice(0, 1) || "C"}</span>
+            )}
             <div>
               <b className="block">{assignment.caregiver}</b>
               <small className="text-[#606878]">Assigned Caregiver</small>
@@ -574,6 +627,37 @@ const AssignmentDrawer = ({ assignment, onClose, onNotify }) => (
           />
           <Detail icon={MapPin} label="Location" value={assignment.location} />
         </div>
+        <section>
+          <small className="font-semibold uppercase text-[#606878]">
+            Care Tasks
+          </small>
+          <div className="mt-3 space-y-2 rounded-xl border border-[#c5cad8] p-4">
+            {assignment.tasks.length ? assignment.tasks.map((task) => {
+              const completed = assignment.completedTasks.includes(task);
+              return (
+                <div className="flex items-center gap-2 text-sm" key={task}>
+                  <CheckCircle2 className={`size-4 ${completed ? "text-emerald-600" : "text-slate-300"}`} />
+                  <span className={completed ? "font-medium" : "text-[#606878]"}>
+                    {task}
+                  </span>
+                </div>
+              );
+            }) : (
+              <p className="text-sm text-[#606878]">No care tasks were assigned.</p>
+            )}
+            {assignment.status === "Completed" && (
+              <p className="border-t border-[#e1e5ee] pt-3 text-xs font-semibold text-violet-700">
+                Visit completed {assignment.completedAtLabel}
+              </p>
+            )}
+            {assignment.careNotes && (
+              <p className="border-t border-[#e1e5ee] pt-3 text-sm text-[#515867]">
+                <b className="block text-[#101c2d]">Caregiver note</b>
+                {assignment.careNotes}
+              </p>
+            )}
+          </div>
+        </section>
         <section>
           <small className="font-semibold uppercase text-[#606878]">
             Actions
@@ -625,7 +709,7 @@ const Detail = ({ icon: Icon, label, value }) => (
 );
 const Status = ({ value }) => (
   <span
-    className={`rounded px-2 py-1 text-[9px] font-semibold uppercase ${value === "Conflict" || value === "Missed" ? "bg-red-100 text-red-700" : value === "In Progress" ? "bg-emerald-600 text-white" : "bg-blue-100 text-blue-700"}`}
+    className={`rounded px-2 py-1 text-[9px] font-semibold uppercase ${value === "Conflict" || value === "Missed" ? "bg-red-100 text-red-700" : value === "In Progress" ? "bg-emerald-600 text-white" : value === "Completed" ? "bg-violet-600 text-white" : "bg-blue-100 text-blue-700"}`}
   >
     {value}
   </span>
@@ -700,5 +784,74 @@ const isSameDay = (first, second) =>
   first.getFullYear() === second.getFullYear() &&
   first.getMonth() === second.getMonth() &&
   first.getDate() === second.getDate();
+
+const calendarRange = (date, view) => {
+  if (view === "Day") {
+    const value = dateKey(date);
+    return { from: value, to: value };
+  }
+  if (view === "Month") {
+    const from = new Date(date.getFullYear(), date.getMonth(), 1);
+    const to = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return { from: dateKey(from), to: dateKey(to) };
+  }
+  const days = buildWeekDays(date);
+  return { from: days[0].key, to: days[6].key };
+};
+
+const timeLabel = (value) => {
+  const [hourValue, minute = "00"] = String(value || "00:00").split(":");
+  const hour = Number(hourValue);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${String(displayHour).padStart(2, "0")}:${minute} ${suffix}`;
+};
+
+const visitToCalendarAssignment = (visit, weekDays) => {
+  const [hour, minute] = String(visit.scheduledStartLocal || "09:00")
+    .split(":")
+    .map(Number);
+  const status = visit.status === "active"
+    ? "In Progress"
+    : visit.status === "missed"
+      ? "Missed"
+      : visit.status === "completed"
+        ? "Completed"
+        : visit.confirmationStatus === "pending"
+          ? "Pending"
+          : "Confirmed";
+  return {
+    id: visit.visitId,
+    date: visit.date,
+    day: weekDays.findIndex((day) => day.key === visit.date),
+    start: hour + minute / 60,
+    duration: visit.durationHours,
+    service: visit.careType,
+    client: visit.clientName,
+    caregiver: visit.caregiverName,
+    caregiverImage: "",
+    status,
+    tone:
+      status === "In Progress"
+        ? "green"
+        : status === "Completed"
+          ? "completed"
+        : status === "Missed"
+          ? "red"
+          : status === "Pending"
+            ? "amber"
+            : "blue",
+    location: visit.location || "Client service location",
+    time: `${timeLabel(visit.scheduledStartLocal)} – ${timeLabel(visit.scheduledEndLocal)}`,
+    tasks: Array.isArray(visit.tasks) ? visit.tasks : [],
+    completedTasks: Array.isArray(visit.completedTasks)
+      ? visit.completedTasks
+      : [],
+    careNotes: visit.careNotes || "",
+    completedAtLabel: visit.clockOutAt
+      ? new Date(visit.clockOutAt).toLocaleString()
+      : "",
+  };
+};
 
 export default AdminSchedule;

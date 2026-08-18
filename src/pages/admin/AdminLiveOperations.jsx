@@ -12,75 +12,87 @@ import {
   SortAsc,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import caregiverAllexus from "../../assets/caregiver-allexus.jpg";
-import caregiverKelly from "../../assets/caregiver-kelly.jpg";
 import caregiverSarah from "../../assets/caregiver-sarah.jpg";
-import findCareSarah from "../../assets/find-care-sarah.jpg";
-import mapImage from "../../assets/find-care-map.jpg";
+import BarikoiMap from "../../components/maps/BarikoiMap";
+import {
+  listAdminShifts,
+  listAdminVisits,
+} from "../../services/assignmentService";
 
-const pageStartedAt = Date.now();
-const sessions = [
-  {
-    id: 1,
-    client: "Mrs. Rabeya Khatun",
-    caregiver: "Abdul K.",
-    image: findCareSarah,
-    status: "Active Visit",
-    tone: "green",
-    baseSeconds: 5171,
-    checkIn: "09:00 AM",
-    end: "12:00 PM",
-    task: "Medication",
-    progress: "2/4 Completed",
-    progressWidth: 50,
-    location: "Within geofence",
-  },
-  {
-    id: 2,
-    client: "Mr. S. Rahman",
-    caregiver: "Fahim J.",
-    image: caregiverKelly,
-    status: "Overtime",
-    tone: "amber",
-    baseSeconds: 13613,
-    checkIn: "06:30 AM",
-    end: "09:30 AM",
-    task: "Care Tasks",
-    progress: "3/3 Completed",
-    progressWidth: 100,
-    location: "Within geofence",
-  },
-  {
-    id: 3,
-    client: "Mrs. Fatema Z.",
-    caregiver: "Sumit D.",
-    image: caregiverAllexus,
-    status: "Critical Alert",
-    tone: "red",
-    baseSeconds: 2811,
-    checkIn: "11:00 AM",
-    end: "02:00 PM",
-    task: "Vitals Check",
-    progress: "0/1 Completed",
-    progressWidth: 10,
-    location: "Outside geofence (2.4km)",
-  },
-  {
-    id: 4,
-    client: "Mrs. Aminul Islam",
-    caregiver: "Shuva R.",
+const normalizeLocation = (location) => {
+  if (!location) return null;
+  const latitude = Number(location.latitude);
+  const longitude = Number(location.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude)
+    ? { latitude, longitude }
+    : null;
+};
+
+const isActiveVisit = (visit) =>
+  visit?.status === "active" &&
+  !visit.clockOutAt &&
+  !visit.completedAt &&
+  !visit.endedAt;
+
+const isActiveShift = (shift) =>
+  shift?.status === "active" &&
+  !shift.clockOutAt &&
+  !shift.completedAt &&
+  !shift.endedAt;
+
+const newestActiveShiftPerCaregiver = (shifts) => {
+  const unique = new Map();
+  shifts.filter(isActiveShift).forEach((shift) => {
+    const key = shift.caregiverId || shift.shiftId;
+    const current = unique.get(key);
+    const shiftTime = String(shift.updatedAt || shift.startedAt || "");
+    const currentTime = String(
+      current?.updatedAt || current?.startedAt || "",
+    );
+    if (!current || shiftTime > currentTime) unique.set(key, shift);
+  });
+  return [...unique.values()];
+};
+
+const toSession = (visit) => {
+  const completed = visit.completedTasks?.length || 0;
+  const total = visit.tasks?.length || 0;
+  const startedAt = visit.clockInAt
+    ? new Date(visit.clockInAt).getTime()
+    : Date.now();
+  return {
+    id: visit.visitId,
+    client: visit.clientName || "Client",
+    caregiver: visit.caregiverName || "Caregiver",
     image: caregiverSarah,
-    status: "Active Visit",
-    tone: "green",
-    baseSeconds: 7906,
-    checkIn: "09:30 AM",
-    end: "01:30 PM",
-    task: "Meal Prep",
-    progress: "1/1 Done",
-    progressWidth: 100,
-    location: "Within geofence",
-  },
-];
+    status: visit.status === "completed" ? "Completed" : "Active Visit",
+    tone: visit.withinGeofence === false ? "red" : "green",
+    baseSeconds: visit.status === "completed" ? visit.durationSeconds || 0 : 0,
+    startedAt,
+    checkIn: visit.clockInAt
+      ? new Date(visit.clockInAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "Not started",
+    end: visit.scheduledEndLocal || "—",
+    task: total === 1 ? visit.tasks[0] : "Care Tasks",
+    progress: `${completed}/${total} Completed`,
+    progressWidth: total ? Math.round((completed / total) * 100) : 0,
+    location: visit.withinGeofence === false
+      ? `Outside geofence${visit.distanceFromServiceMeters ? ` (${visit.distanceFromServiceMeters}m)` : ""}`
+      : visit.currentLocation || visit.clockInLocation
+        ? "Live GPS active"
+      : visit.location || "Location unavailable",
+    coordinates: normalizeLocation(
+      visit.currentLocation ||
+        visit.clockOutLocation ||
+        visit.clockInLocation ||
+        null,
+    ),
+    withinGeofence: visit.withinGeofence,
+  };
+};
 
 const sessionTones = {
   green: {
@@ -104,51 +116,121 @@ const sessionTones = {
 };
 
 const AdminLiveOperations = () => {
-  const [now, setNow] = useState(pageStartedAt);
+  const [now, setNow] = useState(() => Date.now());
   const [tab, setTab] = useState("live");
   const [alertsOnly, setAlertsOnly] = useState(false);
   const [descending, setDescending] = useState(false);
   const [zone, setZone] = useState("All Areas");
   const [notice, setNotice] = useState("");
+  const [sessions, setSessions] = useState([]);
+  const [activeShifts, setActiveShifts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
-  const elapsed = Math.floor((now - pageStartedAt) / 1000);
+  useEffect(() => {
+    let active = true;
+    const loadSessions = () => {
+      Promise.all([
+        listAdminVisits({ status: tab === "live" ? "active" : "completed" }),
+        tab === "live" ? listAdminShifts("active") : Promise.resolve([]),
+      ])
+        .then(([records, shifts]) => {
+          if (!active) return;
+          setSessions(
+            records
+              .filter((record) =>
+                tab === "live" ? isActiveVisit(record) : true,
+              )
+              .map(toSession),
+          );
+          setActiveShifts(newestActiveShiftPerCaregiver(shifts));
+          setNotice("");
+        })
+        .catch((error) => {
+          if (active) {
+            setNotice(error.message);
+            if (tab === "live") {
+              setSessions([]);
+              setActiveShifts([]);
+            }
+          }
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    };
+    loadSessions();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") loadSessions();
+    };
+    const refreshTimer = window.setInterval(loadSessions, 5000);
+    window.addEventListener("focus", loadSessions);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", loadSessions);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [tab]);
+
   const visibleSessions = useMemo(() => {
-    const source =
-      tab === "history"
-        ? sessions.map((item) => ({
-            ...item,
-            status: "Completed",
-            tone: "green",
-          }))
-        : sessions;
     const filtered = alertsOnly
-      ? source.filter((item) => item.tone !== "green")
-      : source;
+      ? sessions.filter((item) => item.tone !== "green")
+      : sessions;
     return [...filtered].sort((a, b) =>
-      descending ? b.baseSeconds - a.baseSeconds : a.id - b.id,
+      descending
+        ? b.baseSeconds - a.baseSeconds
+        : a.client.localeCompare(b.client),
     );
-  }, [alertsOnly, descending, tab]);
+  }, [alertsOnly, descending, sessions]);
 
   const notify = (message) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 3000);
   };
 
+  const mapMarkers = [
+    ...sessions
+      .filter((session) => session.coordinates)
+      .map((session) => ({
+        ...session.coordinates,
+        label: `${session.client} · ${session.caregiver}`,
+      })),
+    ...activeShifts
+      .filter((shift) =>
+        normalizeLocation(shift.currentLocation || shift.startLocation),
+      )
+      .filter((shift) =>
+        !sessions.some(
+          (session) => session.caregiver === shift.caregiverName,
+        ),
+      )
+      .map((shift) => ({
+        ...normalizeLocation(shift.currentLocation || shift.startLocation),
+        label: `${shift.caregiverName || "Caregiver"} · On duty`,
+      })),
+  ];
+
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f4f7fc]">
       <section className="relative h-72 overflow-hidden bg-slate-700 sm:h-[420px]">
-        <img
-          className="h-full w-full object-cover opacity-55 grayscale"
-          src={mapImage}
-          alt="Dhaka live operations map"
+        <BarikoiMap
+          className="h-full w-full"
+          markers={mapMarkers /* sessions
+            .filter((session) => session.coordinates)
+            .map((session) => ({
+              ...session.coordinates,
+              label: `${session.client} · ${session.caregiver}`,
+            })) */}
+          zoom={11}
         />
-        <div className="absolute inset-0 bg-[#10243d]/25" />
-        <div className="absolute left-4 top-4 flex flex-wrap gap-2 sm:left-6 sm:top-6">
+        <div className="pointer-events-none absolute inset-0 bg-[#10243d]/10" />
+        <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2 sm:left-6 sm:top-6">
           <label className="rounded-lg bg-white px-3 py-2 text-xs font-semibold shadow">
             Zone:{" "}
             <select
@@ -178,17 +260,42 @@ const AdminLiveOperations = () => {
             </button>
           </div>
         </div>
-        <span className="absolute right-4 top-4 flex items-center gap-2 rounded-lg bg-[#0755d3] px-4 py-3 text-sm font-semibold text-white shadow sm:right-6 sm:top-6">
-          <span className="size-2 rounded-full bg-emerald-400" /> 89 Active
-          Visits
+        <span className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-lg bg-[#0755d3] px-4 py-3 text-sm font-semibold text-white shadow sm:bottom-auto sm:right-6 sm:top-6">
+          <span className="size-2 rounded-full bg-emerald-400" />{" "}
+          {tab === "live"
+            ? `${sessions.length} Active Visits · ${activeShifts.length} On Duty`
+            : `${sessions.length} Completed Visits`}
         </span>
-        <MapDot className="left-[32%] top-[40%]" tone="bg-blue-600" />
-        <MapDot className="left-[58%] top-[58%]" tone="bg-red-600" />
-        <MapDot className="left-[75%] top-[32%]" tone="bg-emerald-500" />
-        <MapDot className="left-[82%] top-[68%]" tone="bg-blue-600" />
       </section>
 
       <section className="hide-scrollbar flex gap-3 overflow-x-auto border-b border-[#c5cad8] bg-white px-4 py-3 sm:px-6">
+        {sessions.length ? (
+          sessions.slice(0, 5).map((session) => (
+            <AlertChip
+              key={session.id}
+              tone={
+                session.withinGeofence === false
+                  ? "red"
+                  : session.coordinates ? "slate" : "amber"
+              }
+              icon={
+                session.location === "Live GPS active"
+                  ? MapPin
+                  : AlertTriangle
+              }
+              text={`${session.client} — ${
+                session.withinGeofence === false
+                  ? "outside service geofence"
+                  : session.location
+              }`}
+            />
+          ))
+        ) : (
+          <span className="text-xs text-[#606878]">
+            No live visit alerts are currently recorded.
+          </span>
+        )}
+        <div className="hidden">
         <AlertChip
           tone="red"
           icon={AlertTriangle}
@@ -204,6 +311,7 @@ const AdminLiveOperations = () => {
           icon={Flag}
           text="No medication recorded — Mrs. Sumaiya, Uttara"
         />
+        </div>
       </section>
 
       <main className="mx-auto max-w-[1280px] p-4 sm:p-6">
@@ -238,13 +346,17 @@ const AdminLiveOperations = () => {
           {visibleSessions.map((session) => (
             <SessionCard
               session={session}
-              seconds={session.baseSeconds + elapsed}
+              seconds={
+                tab === "live"
+                  ? Math.max(0, Math.floor((now - session.startedAt) / 1000))
+                  : session.baseSeconds
+              }
               key={session.id}
               onAction={notify}
             />
           ))}
         </section>
-        {visibleSessions.length === 0 && (
+        {!loading && visibleSessions.length === 0 && (
           <div className="mt-5 rounded-xl border border-dashed border-[#b9c1d3] bg-white p-10 text-center text-[#606878]">
             No sessions match the current filters.
           </div>
@@ -352,11 +464,6 @@ const QuickAction = ({ label, icon: Icon, danger = false, onClick }) => (
   >
     <Icon className="size-5" />
   </button>
-);
-const MapDot = ({ className, tone }) => (
-  <span
-    className={`absolute size-4 rounded-full border-2 border-white shadow-lg ${className} ${tone}`}
-  />
 );
 const AlertChip = ({ tone, icon: Icon, text }) => {
   const styles = {
