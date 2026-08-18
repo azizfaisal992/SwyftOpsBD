@@ -1,7 +1,6 @@
 import {
   ArrowUp,
   Banknote,
-  Building2,
   CircleCheck,
   Download,
   FileText,
@@ -10,88 +9,134 @@ import {
   TrendingUp,
   WalletCards,
 } from "lucide-react";
-import { useState } from "react";
-import bkashLogo from "../../../assets/bkash-logo.svg";
-
-const transactions = [
-  {
-    title: "Shift Payment - Mrs. Rahman",
-    date: "Today, 10:38 AM",
-    amount: "+ ৳800",
-    type: "income",
-  },
-  {
-    title: "Withdrawal to bKash",
-    date: "Oct 24, 2023",
-    amount: "- ৳5,000",
-    type: "withdrawal",
-  },
-  {
-    title: "Shift Payment - Mr. Khan",
-    date: "Oct 23, 2023",
-    amount: "+ ৳1,200",
-    type: "income",
-  },
-  {
-    title: "Shift Payment - Mrs. Ahmed",
-    date: "Oct 22, 2023",
-    amount: "+ ৳950",
-    type: "income",
-  },
-  {
-    title: "Shift Payment - Mr. Karim",
-    date: "Oct 20, 2023",
-    amount: "+ ৳1,050",
-    type: "income",
-  },
-];
-
-const financialDocuments = [
-  {
-    name: "October 2026 Payslip",
-    category: "Payslips",
-    period: "October 2026",
-    created: "Nov 01, 2026",
-    size: "184 KB",
-  },
-  {
-    name: "September 2026 Payslip",
-    category: "Payslips",
-    period: "September 2026",
-    created: "Oct 01, 2026",
-    size: "179 KB",
-  },
-  {
-    name: "Q3 Earnings Statement",
-    category: "Statements",
-    period: "Jul - Sep 2026",
-    created: "Oct 05, 2026",
-    size: "326 KB",
-  },
-  {
-    name: "Annual Tax Summary",
-    category: "Tax Documents",
-    period: "Tax Year 2025",
-    created: "Jan 15, 2026",
-    size: "412 KB",
-  },
-];
+import { useEffect, useState } from "react";
+import {
+  downloadPaymentPayslip,
+  getPaymentSummary,
+  requestWithdrawal,
+} from "../../../services/paymentService";
 
 const CaregiverPayments = () => {
   const [showAll, setShowAll] = useState(false);
   const [notice, setNotice] = useState("");
   const [documentCategory, setDocumentCategory] = useState("All Documents");
+  const [wallet, setWallet] = useState({
+    availableBalance: 0,
+    completedEarnings: 0,
+    weeklyEarnings: 0,
+    pendingEarnings: 0,
+    monthlyProjection: 0,
+    ledger: [],
+    payouts: [],
+    agreements: [],
+  });
+  const loadWallet = async () => {
+    try {
+      setWallet(await getPaymentSummary());
+    } catch (error) {
+      setNotice(error.message);
+    }
+  };
+  useEffect(() => {
+    let active = true;
+    getPaymentSummary()
+      .then((data) => {
+        if (active) setWallet(data);
+      })
+      .catch((error) => {
+        if (active) setNotice(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const currency =
+    wallet.agreements?.find((agreement) => agreement.pricing?.currency)
+      ?.pricing?.currency ||
+    wallet.ledger?.find((entry) => entry.currency)?.currency ||
+    wallet.payouts?.find((payout) => payout.currency)?.currency ||
+    "USD";
+  const money = (value) => new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+  const transactions = [
+    ...wallet.ledger
+      .filter((entry) => !entry.payoutId)
+      .map((entry) => ({
+      id: entry.ledgerId,
+      title: entry.description || "Caregiver earning",
+      date: new Date(entry.createdAt).toLocaleString(),
+      timestamp: new Date(entry.createdAt).getTime(),
+      amount: `${entry.type === "withdrawal" ? "-" : "+"} ${money(entry.amount)}`,
+      type: entry.type === "withdrawal" ? "withdrawal" : "income",
+      status: entry.status,
+      payslip:
+        entry.status === "completed"
+          ? { type: "earning", id: entry.ledgerId }
+          : null,
+    })),
+    ...wallet.payouts.map((payout) => ({
+      id: payout.payoutId,
+      title:
+        payout.source === "admin_assignment_payout"
+          ? `${payout.clientName || "Client"} · ${payout.careType || "Care service"} payment`
+          : `Withdrawal to ${payout.method || "wallet"}`,
+      date: new Date(payout.requestedAt).toLocaleString(),
+      timestamp: new Date(payout.requestedAt).getTime(),
+      amount:
+        payout.source === "admin_assignment_payout"
+          ? `+ ${money(payout.amount)}`
+          : `- ${money(payout.amount)}`,
+      type:
+        payout.source === "admin_assignment_payout"
+          ? "income"
+          : "withdrawal",
+      status: payout.status,
+      payslip:
+        payout.status === "paid"
+          ? { type: "payout", id: payout.payoutId }
+          : null,
+    })),
+  ].sort((left, right) => right.timestamp - left.timestamp);
   const visibleTransactions = showAll ? transactions : transactions.slice(0, 4);
+  const generatedDocuments = transactions
+    .filter((transaction) => transaction.payslip)
+    .map((transaction) => ({
+      name: `${transaction.title} Payslip`,
+      category: "Payslips",
+      period: transaction.date,
+      created: transaction.date,
+      size: "PDF",
+      payslip: transaction.payslip,
+    }));
+  const documents = generatedDocuments;
   const visibleDocuments =
     documentCategory === "All Documents"
-      ? financialDocuments
-      : financialDocuments.filter(
+      ? documents
+      : documents.filter(
           (document) => document.category === documentCategory,
         );
 
   const showNotice = (message) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 3500);
+  };
+
+  const withdraw = async () => {
+    const requested = window.prompt(
+      `Available balance: ${money(wallet.availableBalance)}. Enter withdrawal amount (minimum ${money(500)}):`,
+    );
+    if (!requested) return;
+    try {
+      await requestWithdrawal(Number(requested), "bkash");
+      showNotice("Withdrawal request submitted for administrator processing.");
+      await loadWallet();
+    } catch (error) {
+      showNotice(error.message);
+    }
   };
 
   return (
@@ -113,11 +158,12 @@ const CaregiverPayments = () => {
           <p className="text-[9px] uppercase leading-3 tracking-[0.06em] text-blue-100 min-[380px]:text-[10px] md:text-sm md:tracking-[0.12em]">
             Available Balance
           </p>
-          <b className="mt-2 block text-lg leading-tight min-[380px]:text-xl md:text-5xl">৳8,200</b>
+          <b className="mt-2 block text-lg leading-tight min-[380px]:text-xl md:text-5xl">{money(wallet.availableBalance)}</b>
           <button
-            className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg bg-white px-1 py-2 text-[10px] font-semibold text-[#0649ad] shadow-sm transition hover:bg-blue-50 min-[380px]:text-xs md:mt-6 md:gap-2 md:py-3 md:text-base"
+            className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg bg-white px-1 py-2 text-[10px] font-semibold text-[#0649ad] shadow-sm transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 min-[380px]:text-xs md:mt-6 md:gap-2 md:py-3 md:text-base"
             type="button"
-            onClick={() => showNotice("Withdrawal request opened. Backend processing will be connected later.")}
+            onClick={withdraw}
+            disabled={Number(wallet.availableBalance || 0) < 500}
           >
             <WalletCards className="hidden size-4 min-[420px]:block md:size-5" />
             <span className="md:hidden">Withdraw</span>
@@ -127,15 +173,15 @@ const CaregiverPayments = () => {
 
         <SummaryCard
           label="Weekly Earnings"
-          value="৳4,500"
+          value={money(wallet.weeklyEarnings)}
           icon={Banknote}
-          footer={<span className="rounded-full bg-emerald-200 px-1.5 py-1 text-[8px] font-semibold text-emerald-800 min-[380px]:text-[9px] md:px-3 md:text-xs">↗ +12% <span className="hidden md:inline">vs last week</span></span>}
+          footer={<span className="text-[8px] text-[#4c5261] min-[380px]:text-[9px] md:text-xs">{wallet.weeklyEarnings > 0 ? "Completed in the last 7 days" : "No completed earnings yet"}</span>}
         />
         <SummaryCard
           label="Monthly Projection"
-          value="৳18,000"
+          value={money(wallet.monthlyProjection ?? wallet.pendingEarnings ?? 0)}
           icon={TrendingUp}
-          footer={<span className="text-[8px] italic leading-3 text-[#4c5261] min-[380px]:text-[9px] md:text-xs"><span className="md:hidden">Projected</span><span className="hidden md:inline">Based on current schedule</span></span>}
+          footer={<span className="text-[8px] italic leading-3 text-[#4c5261] min-[380px]:text-[9px] md:text-xs"><span className="md:hidden">Pending</span><span className="hidden md:inline">Releases after service and final payment</span></span>}
         />
       </section>
 
@@ -144,14 +190,22 @@ const CaregiverPayments = () => {
           <header className="flex items-center border-b border-[#c5cad8] bg-[#edf3ff] px-4 py-4 sm:px-6 sm:py-5">
             <h2 className="text-xl font-semibold">Recent Transactions</h2>
             <button
-              className="ml-auto text-xs font-semibold text-[#0649ad]"
+              className="ml-auto text-xs font-semibold text-[#0649ad] disabled:cursor-not-allowed disabled:opacity-40"
               type="button"
               onClick={() => setShowAll((current) => !current)}
+              disabled={transactions.length === 0}
             >
               {showAll ? "Show Less" : "View All"}
             </button>
           </header>
           <div>
+            {visibleTransactions.length === 0 && (
+              <EmptyState
+                icon={Banknote}
+                title="No transactions yet"
+                description="Earnings will appear here after an assigned care service is completed and recorded."
+              />
+            )}
             {visibleTransactions.map((transaction) => (
               <div
                 className="flex items-center gap-3 border-b border-[#d7dbe7] px-4 py-4 last:border-b-0 sm:gap-4 sm:px-6 sm:py-5"
@@ -179,8 +233,22 @@ const CaregiverPayments = () => {
                     {transaction.amount}
                   </span>
                   <small className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-                    Completed
+                    {transaction.status}
                   </small>
+                  {transaction.payslip && (
+                    <button
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#0649ad]"
+                      type="button"
+                      onClick={() =>
+                        downloadPaymentPayslip(
+                          transaction.payslip.type,
+                          transaction.payslip.id,
+                        ).catch((error) => showNotice(error.message))
+                      }
+                    >
+                      <Download className="size-3.5" /> SwiftOpsBD Payslip
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -193,37 +261,16 @@ const CaregiverPayments = () => {
               Payment Methods
             </h2>
             <div className="space-y-4 p-6">
-              <button
-                className="flex w-full items-center gap-4 rounded-xl border-2 border-[#0649ad] p-4 text-left"
-                type="button"
-                onClick={() => showNotice("bKash account **** 4321 is your primary payout method.")}
-              >
-                <img className="size-11 rounded-lg object-cover" src={bkashLogo} alt="bKash" />
-                <span className="min-w-0 flex-1">
-                  <b className="block">bKash Account</b>
-                  <small className="text-[#4c5261]">**** 4321</small>
-                </span>
-                <CircleCheck className="size-5 shrink-0 fill-emerald-700 text-white" />
-              </button>
-
-              <button
-                className="flex w-full items-center gap-4 rounded-xl border border-[#c5cad8] p-4 text-left"
-                type="button"
-                onClick={() => showNotice("BRAC Bank account **** 9012 selected.")}
-              >
-                <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-blue-100 text-[#17365f]">
-                  <Building2 className="size-6" />
-                </span>
-                <span>
-                  <b className="block">Bank Transfer</b>
-                  <small className="text-[#4c5261]">BRAC Bank **** 9012</small>
-                </span>
-              </button>
-
+              <EmptyState
+                compact
+                icon={WalletCards}
+                title="No payout method"
+                description="Add a verified payout method before requesting a withdrawal."
+              />
               <button
                 className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#c5cad8] px-4 py-3 font-semibold text-[#4c5261] hover:bg-[#f7f9ff]"
                 type="button"
-                onClick={() => showNotice("Payment-method setup will be connected to the backend later.")}
+                onClick={() => showNotice("Payout-method setup is not available yet.")}
               >
                 <Plus className="size-5" /> Add Method
               </button>
@@ -267,6 +314,15 @@ const CaregiverPayments = () => {
         </header>
 
         <div className="grid gap-4 p-4 sm:p-6 md:grid-cols-2">
+          {visibleDocuments.length === 0 && (
+            <div className="md:col-span-2">
+              <EmptyState
+                icon={FileText}
+                title="No financial documents yet"
+                description="SwiftOpsBD payslips will be generated after a completed earning or paid payout."
+              />
+            </div>
+          )}
           {visibleDocuments.map((document) => (
             <article
               className="flex items-center gap-4 rounded-xl border border-[#d7dbe7] p-4 transition hover:border-[#8aaee8] hover:bg-[#f9fbff]"
@@ -289,9 +345,10 @@ const CaregiverPayments = () => {
                 type="button"
                 aria-label={`Download ${document.name}`}
                 onClick={() =>
-                  showNotice(
-                    `${document.name} download will be provided by the backend.`,
-                  )
+                  downloadPaymentPayslip(
+                    document.payslip.type,
+                    document.payslip.id,
+                  ).catch((error) => showNotice(error.message))
                 }
               >
                 <Download className="size-5" />
@@ -315,6 +372,18 @@ const SummaryCard = ({ label, value, icon: Icon, footer }) => (
     <b className="mt-3 block break-words text-lg font-medium leading-tight min-[380px]:text-xl md:mt-5 md:text-4xl">{value}</b>
     <div className="mt-3 md:mt-5">{footer}</div>
   </article>
+);
+
+const EmptyState = ({ icon: Icon, title, description, compact = false }) => (
+  <div className={`text-center ${compact ? "py-2" : "px-5 py-10"}`}>
+    <span className="mx-auto grid size-11 place-items-center rounded-full bg-blue-50 text-[#0649ad]">
+      <Icon className="size-5" />
+    </span>
+    <b className="mt-3 block text-sm">{title}</b>
+    <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-[#667085]">
+      {description}
+    </p>
+  </div>
 );
 
 export default CaregiverPayments;
