@@ -92,8 +92,20 @@ const ClientContactSetup = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!location) {
+    const submittedArea = (area || searchTerm).trim();
+    const hasValidLocation = location
+      && Number.isFinite(Number(location.latitude))
+      && Number.isFinite(Number(location.longitude))
+      && Number(location.latitude) >= 20.5
+      && Number(location.latitude) <= 26.8
+      && Number(location.longitude) >= 88
+      && Number(location.longitude) <= 92.8;
+    if (!hasValidLocation) {
       setError("Select an address or click the map to pin the precise care location.");
+      return;
+    }
+    if (!submittedArea) {
+      setError("Enter the area or neighborhood for this care location.");
       return;
     }
     const formData = new FormData(event.currentTarget);
@@ -103,7 +115,7 @@ const ClientContactSetup = () => {
       await saveContact({
         phone: formData.get("phone"),
         email: formData.get("email"),
-        area,
+        area: submittedArea,
         road: formData.get("road"),
         house: formData.get("house"),
         locationPinned: true,
