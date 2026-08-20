@@ -36,6 +36,7 @@ const getAdminLoginError = (error) => {
 
   return (
     messages[error?.code] ||
+    error?.message ||
     "Admin sign-in failed. Check the Firebase Authentication account and try again."
   );
 };
@@ -43,7 +44,7 @@ const getAdminLoginError = (error) => {
 const AdminLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { claims, loading, user } = useAuth();
+  const { claims, loading, refreshAccount, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -69,6 +70,7 @@ const AdminLogin = () => {
     setNotice("");
     try {
       await loginAdmin({ email, password });
+      await refreshAccount(true);
       navigate(location.state?.from || "/admin/dashboard", { replace: true });
     } catch (loginError) {
       setError(getAdminLoginError(loginError));
@@ -104,6 +106,7 @@ const AdminLogin = () => {
     setNotice("");
     try {
       await loginAdminWithGoogle();
+      await refreshAccount(true);
       navigate(location.state?.from || "/admin/dashboard", { replace: true });
     } catch (loginError) {
       setError(getAdminLoginError(loginError));

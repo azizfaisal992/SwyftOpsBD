@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import useAuth from "../../hooks/useAuth";
 import {
   loginWithEmail,
   loginWithGoogle,
   registerWithEmail,
   requestPasswordReset,
 } from "../../services/authService";
+import { getClientOnboarding } from "../../services/clientOnboardingService";
+import { getCaregiverOnboarding } from "../../services/onboardingService";
 
 const getAuthErrorMessage = (error) => {
   const messages = {
     "auth/email-already-in-use": "An account already exists with this email.",
+    "auth/account-type-mismatch": "This account belongs to a different SwiftOpsBD portal. Return to Join Now and choose the correct account type.",
     "auth/invalid-credential": "The email or password is incorrect.",
     "auth/invalid-email": "Enter a valid email address.",
     "auth/internal-error": "Google sign-in could not start. Add localhost (or your current website domain) under Firebase Authentication → Settings → Authorized domains, then restart the app.",
@@ -24,6 +28,7 @@ const getAuthErrorMessage = (error) => {
 };
 
 const AuthenticationForm = ({ mode }) => {
+  const { refreshAccount } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +39,31 @@ const AuthenticationForm = ({ mode }) => {
   const accountType = searchParams.get("type");
   const isRegister = mode === "register";
   const roleLabel = accountType === "professional" ? "care professional" : "family";
-  const destination = accountType === "professional" ? "/caregiver/profile-setup" : accountType === "family" ? "/client/profile-setup" : "/";
+  const resolveDestination = async (account) => {
+    if (account?.role === "caregiver") {
+      const onboarding = await getCaregiverOnboarding();
+      if (onboarding.verificationStatus === "approved") {
+        return "/caregiver/dashboard";
+      }
+      if (onboarding.assessmentSubmitted) return "/caregiver/review";
+      if (!onboarding.profileCompleted) return "/caregiver/profile-setup";
+      if (!onboarding.credentialsCompleted) return "/caregiver/credentials";
+      return "/caregiver/assessment";
+    }
+    if (account?.role === "client") {
+      const onboarding = await getClientOnboarding();
+      if (onboarding.submitted) return "/client/dashboard";
+      if (!onboarding.profileCompleted) return "/client/profile-setup";
+      if (!onboarding.contactCompleted) return "/client/contact-setup";
+      return "/client/verification";
+    }
+    return "/";
+  };
+
+  const openAuthenticatedPortal = async () => {
+    const session = await refreshAccount(true);
+    navigate(await resolveDestination(session?.account), { replace: true });
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -50,14 +79,16 @@ const AuthenticationForm = ({ mode }) => {
           name: formData.get("name"),
           email: formData.get("email"),
           password: formData.get("password"),
+          accountType,
         });
       } else {
         await loginWithEmail({
           email: formData.get("email"),
           password: formData.get("password"),
+          accountType,
         });
       }
-      navigate(destination);
+      await openAuthenticatedPortal();
     } catch (error) {
       setErrorMessage(getAuthErrorMessage(error));
     } finally {
@@ -71,8 +102,8 @@ const AuthenticationForm = ({ mode }) => {
     setNotice("");
 
     try {
-      await loginWithGoogle();
-      navigate(destination);
+      await loginWithGoogle(accountType);
+      await openAuthenticatedPortal();
     } catch (error) {
       setErrorMessage(getAuthErrorMessage(error));
     } finally {

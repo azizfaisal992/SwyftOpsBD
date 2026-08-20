@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { caregiverAccount } from "../../../data/caregiverPortalData";
+import useAuth from "../../../hooks/useAuth";
 import { logout } from "../../../services/authService";
+import NotificationBell from "../../communication/NotificationBell";
 
 const items = [
   ["Dashboard", "/caregiver/dashboard", LayoutDashboard],
@@ -40,6 +41,13 @@ const CaregiverPortalLayout = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { account, user } = useAuth();
+  const accountName =
+    user?.displayName ||
+    account?.displayName ||
+    user?.email?.split("@")[0] ||
+    "Caregiver";
+  const accountInitial = accountName.charAt(0).toUpperCase();
   const isNotifications = location.pathname === "/caregiver/notifications";
   const isRequestDetail = location.pathname.startsWith(
     "/caregiver/requested-clients/",
@@ -147,17 +155,24 @@ const CaregiverPortalLayout = () => {
                 On shift
               </span>
             )}
-            <Bell className="hidden size-5 min-[380px]:block" />
+            <NotificationBell messagePath="/caregiver/notifications" />
             <MessageSquare className="hidden size-5 sm:block" />
-            <img
-              className="size-9 rounded-full object-cover"
-              src={caregiverAccount.image}
-              alt=""
-            />
+            {user?.photoURL ? (
+              <img
+                className="size-9 rounded-full border border-[#c5cad8] object-cover"
+                src={user.photoURL}
+                alt={accountName}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="grid size-9 place-items-center rounded-full border border-[#c5cad8] bg-[#dee9ff] text-sm font-bold text-[#06449d]">
+                {accountInitial || <UserRound className="size-5" />}
+              </span>
+            )}
             <div className="hidden md:block">
-              <b className="block text-sm">{caregiverAccount.name}</b>
+              <b className="block max-w-40 truncate text-sm">{accountName}</b>
               <span className="text-xs text-[#4c5261]">
-                {caregiverAccount.role}
+                Caregiver
               </span>
             </div>
           </div>

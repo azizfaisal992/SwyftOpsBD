@@ -7,6 +7,8 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { configureBrowserSessionPersistence } from "./firebaseSession";
+import { bootstrapCurrentUser } from "./identityService";
 
 export const ADMIN_ROLES = [
   "super_admin",
@@ -32,6 +34,7 @@ export const getAdminAccess = async (user, forceRefresh = false) => {
 };
 
 export const loginAdmin = async ({ email, password }) => {
+  await configureBrowserSessionPersistence();
   const credential = await signInWithEmailAndPassword(
     auth,
     email.trim(),
@@ -48,10 +51,12 @@ export const loginAdmin = async ({ email, password }) => {
     throw error;
   }
 
+  await bootstrapCurrentUser();
   return { user: credential.user, claims: access.claims };
 };
 
 export const loginAdminWithGoogle = async () => {
+  await configureBrowserSessionPersistence();
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
   const credential = await signInWithPopup(auth, provider);
@@ -66,6 +71,7 @@ export const loginAdminWithGoogle = async () => {
     throw error;
   }
 
+  await bootstrapCurrentUser();
   return { user: credential.user, claims: access.claims };
 };
 

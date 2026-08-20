@@ -1,20 +1,29 @@
 import {
-  Bell,
   CalendarDays,
+  ChevronDown,
   CircleHelp,
   CreditCard,
   FileUp,
   LayoutDashboard,
+  LogOut,
   Menu,
   MessageSquareText,
   Plus,
   Settings,
   ShieldCheck,
+  UserRound,
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
-import { connectedCaregiver } from "../../../data/clientPortalData";
+import {
+  NavLink,
+  Outlet,
+  useNavigate,
+  useOutletContext,
+} from "react-router-dom";
+import useAuth from "../../../hooks/useAuth";
+import { logout } from "../../../services/authService";
+import NotificationBell from "../../communication/NotificationBell";
 
 const navigation = [
   { label: "Dashboard", path: "/client/dashboard", icon: LayoutDashboard },
@@ -27,6 +36,30 @@ const navigation = [
 
 const ClientPortalLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const { account, user } = useAuth();
+  const portalContext = useOutletContext();
+  const navigate = useNavigate();
+  const accountName =
+    user?.displayName ||
+    account?.displayName ||
+    user?.email?.split("@")[0] ||
+    "Client";
+  const accountInitial = accountName.charAt(0).toUpperCase();
+
+  const handleLogout = async () => {
+    setSigningOut(true);
+
+    try {
+      await logout();
+      setAccountOpen(false);
+      setSidebarOpen(false);
+      navigate("/login", { replace: true });
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   const sidebar = (
     <aside className="flex h-full w-64 flex-col border-r border-[#c5cad8] bg-[#f9f9ff]">
@@ -69,14 +102,87 @@ const ClientPortalLayout = () => {
           <button className="grid size-10 place-items-center rounded-lg border border-[#c5cad8] lg:hidden" type="button" onClick={() => setSidebarOpen(true)}><Menu className="size-5" /></button>
           <span className="text-xl font-bold text-[#06449d] lg:hidden">SwiftOpsBD</span>
           <div className="ml-auto flex items-center gap-4 text-[#424958]">
-            <button className="relative" type="button" aria-label="Notifications"><Bell className="size-5" /><span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-red-600" /></button>
-            <CircleHelp className="size-5" />
-            <Settings className="hidden size-5 sm:block" />
-            <img className="size-9 rounded-lg border border-[#9da6ba] object-cover" src={connectedCaregiver.image} alt="Account" />
+            <NotificationBell messagePath="/client/messages" />
+            <button type="button" aria-label="Help"><CircleHelp className="size-5" /></button>
+            <button className="hidden sm:block" type="button" aria-label="Settings"><Settings className="size-5" /></button>
+
+            <div className="relative">
+              <button
+                className="flex items-center gap-2 rounded-lg p-1 transition hover:bg-[#f0f3ff]"
+                type="button"
+                aria-label="Open client account menu"
+                aria-expanded={accountOpen}
+                onClick={() => setAccountOpen((current) => !current)}
+              >
+                {user?.photoURL ? (
+                  <img
+                    className="size-9 rounded-lg border border-[#9da6ba] object-cover"
+                    src={user.photoURL}
+                    alt={accountName}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="grid size-9 place-items-center rounded-lg border border-[#9da6ba] bg-[#dee9ff] text-sm font-bold text-[#06449d]">
+                    {accountInitial || <UserRound className="size-5" />}
+                  </span>
+                )}
+                <span className="hidden max-w-40 text-left md:block">
+                  <b className="block truncate text-sm text-[#111c2c]">
+                    {accountName}
+                  </b>
+                  <span className="block text-xs text-[#6b7280]">
+                    Client
+                  </span>
+                </span>
+                <ChevronDown className="hidden size-4 sm:block" />
+              </button>
+
+              {accountOpen && (
+                <>
+                  <button
+                    className="fixed inset-0 z-40 cursor-default"
+                    type="button"
+                    aria-label="Close client account menu"
+                    onClick={() => setAccountOpen(false)}
+                  />
+                  <div className="absolute right-0 top-12 z-50 w-64 rounded-xl border border-[#c5cad8] bg-white p-2 shadow-xl">
+                    <div className="flex items-center gap-3 border-b border-slate-100 px-3 py-3">
+                      {user?.photoURL ? (
+                        <img
+                          className="size-10 rounded-lg border border-[#9da6ba] object-cover"
+                          src={user.photoURL}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#dee9ff] font-bold text-[#06449d]">
+                          {accountInitial}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#111c2c]">{accountName}</p>
+                        <p className="truncate text-xs text-[#6b7280]">{user?.email}</p>
+                      </div>
+                    </div>
+                    <button
+                      className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                      type="button"
+                      disabled={signingOut}
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="size-4" />
+                      {signingOut ? "Logging out..." : "Logout"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
-        <main className="min-h-[calc(100vh-112px)]"><Outlet /></main>
+        <main className="min-h-[calc(100vh-112px)]">
+          <Outlet context={portalContext} />
+        </main>
         <footer className="flex flex-col gap-3 bg-[#263449] px-6 py-4 text-xs text-[#c7cfdd] sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 SwiftOpsBD Management System. All rights reserved.</p>
           <nav className="flex flex-wrap gap-5"><a href="#privacy">Privacy Policy</a><a href="#terms">Terms of Service</a><a href="#compliance">Compliance</a><a href="#disputes">Dispute Resolution</a></nav>
