@@ -1,1 +1,414 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    font-family: var(--font-sans);
+    background: white;
+  }
+
+  a,
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .primary-button {
+    border-radius: 9999px;
+    background: #003d9b;
+    padding: 0.75rem 2rem;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background-color 160ms ease, transform 160ms ease;
+  }
+
+  .primary-button:hover {
+    background: #002f78;
+    transform: translateY(-1px);
+  }
+
+  .nav-link {
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    color: #434654;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .nav-link:hover {
+    color: #003d9b;
+  }
+
+  .mobile-link {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: #434654;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .mobile-link:hover {
+    background: #f0f3ff;
+  }
+
+  .auth-label {
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #101c2d;
+  }
+
+  .auth-input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #c3c6d6;
+    background: white;
+    padding: 0.75rem 1rem;
+    color: #101c2d;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .auth-input:focus {
+    border-color: #003d9b;
+    box-shadow: 0 0 0 3px rgb(0 61 155 / 12%);
+  }
+
+  .auth-provider {
+    border-radius: 0.5rem;
+    border: 1px solid #c3c6d6;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #101c2d;
+    transition: background-color 160ms ease;
+  }
+
+  .auth-provider:hover {
+    background: #f0f3ff;
+  }
+
+  .google-auth-button {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    border: 1px solid #d8dee9;
+    border-radius: 0.3rem;
+    background: white;
+    padding: 0.8rem 1rem;
+    color: #202124;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgb(16 28 45 / 4%);
+    transition: background-color 160ms ease, border-color 160ms ease;
+  }
+
+  .google-auth-button:hover {
+    border-color: #c3c6d6;
+    background: #f8faff;
+  }
+
+  .onboarding-input {
+    width: 100%;
+    border-radius: 0.25rem;
+    border: 1px solid #c3c6d6;
+    background: #f4f5f7;
+    padding: 0.8rem;
+    color: #101c2d;
+    outline: none;
+  }
+
+  .onboarding-input:focus {
+    border-color: #003d9b;
+    box-shadow: 0 0 0 3px rgb(0 61 155 / 10%);
+  }
+
+  .onboarding-action {
+    border-radius: 0.75rem;
+    background: #003d9b;
+    padding: 0.85rem 2rem;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 8px 14px rgb(0 61 155 / 16%);
+  }
+
+  .onboarding-action:hover {
+    background: #002f78;
+  }
+
+  .secondary-action {
+    border-radius: 0.75rem;
+    border: 1px solid #c3c6d6;
+    background: white;
+    padding: 0.8rem 1.5rem;
+    color: #434654;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .assessment-option {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #c3c6d6;
+    border-radius: 0.25rem;
+    padding: 0.9rem;
+    font-size: 0.875rem;
+  }
+
+  .assessment-option:hover {
+    border-color: #003d9b;
+    background: #f9f9ff;
+  }
+
+  .assessment-option input {
+    accent-color: #003d9b;
+  }
+
+  .question-number {
+    margin-right: 0.5rem;
+    display: inline-grid;
+    height: 1.5rem;
+    width: 1.5rem;
+    place-items: center;
+    border-radius: 9999px;
+    background: #e7eeff;
+    color: #003d9b;
+    font-size: 0.75rem;
+  }
+
+  .find-care-search-field {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #c3c6d6;
+    border-radius: 0.5rem;
+    background: #f4f5f7;
+    padding: 0.75rem 1rem;
+    color: #434654;
+  }
+
+  .find-care-search-field input,
+  .find-care-search-field select {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #101c2d;
+    font-size: 0.875rem;
+    font-weight: 600;
+    outline: none;
+  }
+
+  .client-label {
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111c2c;
+  }
+
+  .client-label b {
+    color: #c52828;
+  }
+
+  .client-input {
+    width: 100%;
+    border: 1px solid #c5cad8;
+    border-radius: 0.2rem;
+    background: #f5f6f8;
+    padding: 0.72rem 0.8rem;
+    color: #202a3a;
+    outline: none;
+  }
+
+  .client-input:focus {
+    border-color: #0047a8;
+    box-shadow: 0 0 0 3px rgb(0 71 168 / 10%);
+  }
+
+  .client-field-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    width: 1rem;
+    height: 1rem;
+    transform: translateY(-50%);
+    color: #565d6d;
+    pointer-events: none;
+  }
+
+  .portal-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-radius: 0.75rem;
+    background: #0649ad;
+    padding: 0.9rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 5px 12px rgb(6 73 173 / 15%);
+  }
+
+  .portal-action.light {
+    background: #dce8ff;
+    color: #0649ad;
+  }
+
+  .plan-label {
+    margin-bottom: 0.75rem;
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4c5261;
+  }
+}
+
+.find-job-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.find-job-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.find-job-hero.is-visible {
+  animation: find-job-hero-float 7s ease-in-out 1000ms infinite;
+}
+
+.find-job-phone.is-visible {
+  animation: find-job-phone-float 5s ease-in-out 700ms infinite;
+}
+
+.find-job-category span {
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+.find-job-category:hover span {
+  transform: translateY(-7px) rotate(-2deg);
+  background-color: #0755d3;
+  box-shadow: 0 14px 28px rgb(6 72 170 / 22%);
+}
+
+.find-job-card {
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 240ms ease,
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.find-job-card:hover {
+  transform: translateY(-8px);
+  border-color: #8ca9df;
+  box-shadow: 0 18px 36px rgb(17 28 47 / 10%);
+}
+
+.find-job-card img {
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.find-job-card:hover img {
+  transform: scale(1.045);
+}
+
+.find-job-expand {
+  transform-origin: top;
+  animation: find-job-expand 220ms ease-out both;
+}
+
+@keyframes find-job-hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes find-job-phone-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.5deg);
+  }
+}
+
+@keyframes find-job-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .find-job-reveal,
+  .find-job-reveal.is-visible,
+  .find-job-hero.is-visible,
+  .find-job-phone.is-visible,
+  .find-job-expand {
+    opacity: 1;
+    transform: none;
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .onboarding-action,
+  .secondary-action {
+    width: 100%;
+    text-align: center;
+  }
+
+  .assessment-option {
+    align-items: flex-start;
+    line-height: 1.35;
+  }
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

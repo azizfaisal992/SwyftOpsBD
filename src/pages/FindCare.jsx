@@ -1,0 +1,633 @@
+import {
+  BadgeCheck,
+  BriefcaseMedical,
+  CalendarDays,
+  ChevronDown,
+  CircleDollarSign,
+  Clock3,
+  GraduationCap,
+  Heart,
+  MapPin,
+  MessageSquareText,
+  Search,
+  ShieldCheck,
+  Star,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import mapImage from "../assets/find-care-map.jpg";
+import {
+  DHAKA_POSTAL_AREAS,
+  normalizePostalCode,
+  postalLocationLabel,
+} from "../data/dhakaPostalCodes";
+import useCmsContent from "../hooks/useCmsContent";
+import {
+  listPublicCaregivers,
+  publicCaregiverPhotoUrl,
+} from "../services/publicDirectoryService";
+
+const filterChips = [
+  {
+    id: "service",
+    label: "Service",
+    options: [
+      "All Services",
+      "Senior Care",
+      "Child Care",
+      "Home Nursing",
+      "Companion Care",
+      "Physiotherapy",
+      "Dementia Care",
+    ],
+  },
+  {
+    id: "rate",
+    label: "Hourly Rate",
+    options: ["Any Rate", "Up to $700", "Up to $850", "Up to $1,000"],
+  },
+  {
+    id: "gender",
+    label: "Gender",
+    options: ["Any Gender", "Female", "Male"],
+  },
+  {
+    id: "experience",
+    label: "Experience",
+    options: ["Any Experience", "5+ Years", "7+ Years", "8+ Years"],
+  },
+  {
+    id: "rating",
+    label: "Rating",
+    options: ["Any Rating", "4.7+", "4.8+", "4.9+"],
+  },
+];
+
+const FindCareFooter = () => (
+  <footer className="border-t border-[#c3c6d6] bg-[#d7e3fb]">
+    <div className="mx-auto grid max-w-7xl gap-8 px-6 py-8 sm:grid-cols-[1fr_auto_auto]">
+      <div className="max-w-xs">
+        <h2 className="text-sm font-bold text-[#003d9b]">SwiftOpsBD Dhaka</h2>
+        <p className="mt-4 text-sm leading-6 text-[#434654]">
+          Providing compassionate, professional care across Dhaka. DGHS
+          Certified Facility with verified professional network.
+        </p>
+      </div>
+      <div>
+        <h3 className="text-sm font-bold">Support</h3>
+        <p className="mt-3 text-xs text-[#434654]">Help Center</p>
+        <p className="mt-3 text-xs text-[#434654]">Emergency Support</p>
+      </div>
+      <div>
+        <h3 className="text-sm font-bold">Legal</h3>
+        <p className="mt-3 text-xs text-[#434654]">Privacy Policy</p>
+        <p className="mt-3 text-xs text-[#434654]">Terms of Service</p>
+      </div>
+    </div>
+    <p className="mx-auto max-w-7xl border-t border-[#c3c6d6]/40 px-6 py-4 text-xs text-[#434654]/70">
+      © 2026 SwiftOpsBD Dhaka. DGHS Certified Facility. All Rights Reserved.
+    </p>
+  </footer>
+);
+
+const FindCare = () => {
+  const { publishedContent } = useCmsContent();
+  const cms = publishedContent["find-care"];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPostalCode = normalizePostalCode(
+    searchParams.get("postalCode"),
+  );
+  const initialLocation =
+    postalLocationLabel(initialPostalCode) || "Gulshan, Dhaka 1212";
+  const [caregivers, setCaregivers] = useState([]);
+  const [directoryLoading, setDirectoryLoading] = useState(true);
+  const [directoryError, setDirectoryError] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
+  const [favorites, setFavorites] = useState([]);
+  const [service, setService] = useState("Senior Care");
+  const [location, setLocation] = useState(initialLocation);
+  const [maxRate, setMaxRate] = useState("");
+  const [search, setSearch] = useState({
+    service: "",
+    location: initialPostalCode ? initialLocation : "",
+    postalCode: initialPostalCode,
+    maxRate: "",
+  });
+  const [chipFilters, setChipFilters] = useState({
+    service: "All Services",
+    rate: "Any Rate",
+    gender: "Any Gender",
+    experience: "Any Experience",
+    rating: "Any Rating",
+  });
+
+  useEffect(() => {
+    let active = true;
+    const loadDirectory = () =>
+      listPublicCaregivers()
+        .then((records) => {
+          if (!active) return;
+          setCaregivers(
+            records.map((caregiver) => ({
+              ...caregiver,
+              image: caregiver.hasPhoto
+                ? publicCaregiverPhotoUrl(caregiver.id)
+                : "",
+              tags: caregiver.tags || [],
+              certifications: caregiver.certifications || [],
+            })),
+          );
+          setDirectoryError("");
+        })
+        .catch((error) => {
+          if (active) setDirectoryError(error.message);
+        })
+        .finally(() => {
+          if (active) setDirectoryLoading(false);
+        });
+    loadDirectory();
+    window.addEventListener("focus", loadDirectory);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", loadDirectory);
+    };
+  }, []);
+
+  const visibleCaregivers = useMemo(
+    () =>
+      caregivers.filter((caregiver) => {
+        const matchesService =
+          !search.service ||
+          caregiver.tags.some((tag) =>
+            tag.toLowerCase().includes(search.service.toLowerCase()),
+          ) ||
+          caregiver.role.toLowerCase().includes(search.service.toLowerCase());
+        const matchesLocation =
+          !search.location ||
+          Boolean(search.postalCode) ||
+          caregiver.location
+            .toLowerCase()
+            .includes(search.location.split(",")[0].toLowerCase());
+        const matchesPostalCode =
+          !search.postalCode ||
+          String(caregiver.postalCode || "") === search.postalCode;
+        const matchesRate =
+          !search.maxRate || caregiver.rate <= Number(search.maxRate);
+        const matchesChipService =
+          chipFilters.service === "All Services" ||
+          caregiver.tags.includes(chipFilters.service) ||
+          caregiver.role
+            .toLowerCase()
+            .includes(chipFilters.service.toLowerCase());
+        const chipRate = Number(
+          chipFilters.rate.match(/\d[\d,]*/)?.[0]?.replace(",", "") || 0,
+        );
+        const matchesChipRate = !chipRate || caregiver.rate <= chipRate;
+        const matchesGender =
+          chipFilters.gender === "Any Gender" ||
+          caregiver.gender === chipFilters.gender;
+        const experienceMinimum = Number(
+          chipFilters.experience.match(/\d+/)?.[0] || 0,
+        );
+        const matchesExperience =
+          !experienceMinimum || caregiver.experienceYears >= experienceMinimum;
+        const ratingMinimum = Number(
+          chipFilters.rating.match(/\d\.\d/)?.[0] || 0,
+        );
+        const matchesRating =
+          !ratingMinimum || caregiver.rating >= ratingMinimum;
+        return (
+          matchesService &&
+          matchesLocation &&
+          matchesPostalCode &&
+          matchesRate &&
+          matchesChipService &&
+          matchesChipRate &&
+          matchesGender &&
+          matchesExperience &&
+          matchesRating
+        );
+      }),
+    [caregivers, chipFilters, search],
+  );
+
+  const filtersAreActive = Object.entries(chipFilters).some(
+    ([key, value]) =>
+      ({
+        service: "All Services",
+        rate: "Any Rate",
+        gender: "Any Gender",
+        experience: "Any Experience",
+        rating: "Any Rating",
+      })[key] !== value,
+  );
+
+  const resetChipFilters = () =>
+    setChipFilters({
+      service: "All Services",
+      rate: "Any Rate",
+      gender: "Any Gender",
+      experience: "Any Experience",
+      rating: "Any Rating",
+    });
+
+  const selected =
+    caregivers.find((caregiver) => caregiver.id === selectedId) ||
+    visibleCaregivers[0] ||
+    null;
+
+  const submitSearch = (event) => {
+    event.preventDefault();
+    const enteredPostalCode = normalizePostalCode(location);
+    const supportedPostalCode = DHAKA_POSTAL_AREAS[enteredPostalCode]
+      ? enteredPostalCode
+      : "";
+    const canonicalLocation =
+      postalLocationLabel(supportedPostalCode) || location.trim();
+    setLocation(canonicalLocation);
+    setSearch({
+      service,
+      location: canonicalLocation,
+      postalCode: supportedPostalCode,
+      maxRate,
+    });
+    const nextParams = new URLSearchParams();
+    if (supportedPostalCode) nextParams.set("postalCode", supportedPostalCode);
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const toggleFavorite = (id) => {
+    setFavorites((current) =>
+      current.includes(id)
+        ? current.filter((favoriteId) => favoriteId !== id)
+        : [...current, id],
+    );
+  };
+
+  return (
+    <>
+      <section className="sticky top-16 z-30 border-b border-[#c3c6d6] bg-white/95 py-4 shadow-sm backdrop-blur-md">
+        <form
+          className="mx-auto max-w-7xl px-5 sm:px-6"
+          onSubmit={submitSearch}
+        >
+          <div className="grid gap-3 lg:grid-cols-[1fr_1fr_0.8fr_0.7fr_auto]">
+            <label className="find-care-search-field">
+              <BriefcaseMedical className="size-5" />
+              <select
+                value={service}
+                onChange={(event) => setService(event.target.value)}
+              >
+                <option>Senior Care</option>
+                <option>Child Care</option>
+                <option>Home Nursing</option>
+                <option>Companion Care</option>
+              </select>
+            </label>
+            <label className="find-care-search-field">
+              <MapPin className="size-5" />
+              <input
+                list="dhaka-postal-locations"
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                placeholder="Area or Dhaka postal code"
+              />
+              <datalist id="dhaka-postal-locations">
+                {Object.entries(DHAKA_POSTAL_AREAS).map(([code, area]) => (
+                  <option key={code} value={`${area}, Dhaka ${code}`} />
+                ))}
+              </datalist>
+            </label>
+            <label className="find-care-search-field">
+              <CalendarDays className="size-5" />
+              <input type="date" aria-label="Select date" />
+            </label>
+            <label className="find-care-search-field">
+              <CircleDollarSign className="size-5" />
+              <input
+                type="number"
+                min="0"
+                value={maxRate}
+                onChange={(event) => setMaxRate(event.target.value)}
+                placeholder="Max hourly rate"
+              />
+            </label>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#003d9b] px-7 py-3 font-semibold text-white hover:bg-[#002f78]"
+              type="submit"
+            >
+              <Search className="size-5" />
+              {cms.primaryButton}
+            </button>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {filterChips.map((chip) => {
+              const defaultValue = chip.options[0];
+              const active = chipFilters[chip.id] !== defaultValue;
+              return (
+                <label
+                  className={`relative flex shrink-0 items-center rounded-full border px-4 py-2 text-xs font-medium ${
+                    active
+                      ? "border-[#003d9b] bg-[#003d9b] text-white"
+                      : "border-[#c3c6d6] bg-[#f0f3ff]"
+                  }`}
+                  key={chip.id}
+                >
+                  <span className="pointer-events-none mr-1">
+                    {active ? chipFilters[chip.id] : chip.label}
+                  </span>
+                  <ChevronDown className="pointer-events-none size-3" />
+                  <select
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    aria-label={`Filter by ${chip.label}`}
+                    value={chipFilters[chip.id]}
+                    onChange={(event) =>
+                      setChipFilters((current) => ({
+                        ...current,
+                        [chip.id]: event.target.value,
+                      }))
+                    }
+                  >
+                    {chip.options.map((option) => (
+                      <option value={option} key={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+            {filtersAreActive && (
+              <button
+                className="shrink-0 rounded-full px-3 py-2 text-xs font-semibold text-[#003d9b] hover:bg-[#f0f3ff]"
+                type="button"
+                onClick={resetChipFilters}
+              >
+                Clear filters
+              </button>
+            )}
+            <span className="mx-1 h-8 w-px shrink-0 bg-[#c3c6d6]" />
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#9df5c5] px-4 py-2 text-xs font-medium text-[#10734d]">
+              <ShieldCheck className="size-4" />
+              Background Checked
+            </span>
+          </div>
+        </form>
+      </section>
+
+      <main className="mx-auto grid max-w-7xl gap-4 px-5 py-6 sm:px-6 lg:grid-cols-12">
+        <section className="lg:col-span-5">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h1 className="text-xl font-semibold sm:text-2xl">
+              {visibleCaregivers.length || 0} {cms.headline}
+            </h1>
+            <span className="whitespace-nowrap text-xs text-[#737685]" title={cms.subheadline}>
+              Sort by: Recommended
+            </span>
+          </div>
+          <div className="space-y-4">
+            {directoryError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {directoryError}
+              </div>
+            )}
+            {directoryLoading && (
+              <div className="rounded-lg border border-[#c3c6d6] bg-white p-8 text-center text-[#434654]">
+                Loading verified caregivers...
+              </div>
+            )}
+            {visibleCaregivers.map((caregiver) => (
+              <article
+                className={`relative flex cursor-pointer gap-4 rounded-lg border bg-white p-4 transition ${selected?.id === caregiver.id ? "border-2 border-[#003d9b] shadow-lg" : "border-[#c3c6d6] hover:border-[#003d9b]/50"}`}
+                key={caregiver.id}
+                onClick={() => setSelectedId(caregiver.id)}
+              >
+                <PublicCaregiverImage
+                  className="size-24 shrink-0 rounded object-cover"
+                  src={caregiver.image}
+                  alt={caregiver.name}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h2 className="text-lg font-medium text-[#003d9b]">
+                        {caregiver.name}
+                      </h2>
+                      <p className="text-xs text-[#737685]">
+                        {caregiver.location} • {caregiver.distance}
+                      </p>
+                    </div>
+                    <button
+                      className="p-1"
+                      type="button"
+                      aria-label={`Favorite ${caregiver.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleFavorite(caregiver.id);
+                      }}
+                    >
+                      <Heart
+                        className={`size-5 ${favorites.includes(caregiver.id) ? "fill-red-500 text-red-500" : "text-[#737685]"}`}
+                      />
+                    </button>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1 text-xs">
+                    <Star className="size-4 fill-amber-400 text-amber-400" />
+                    <b>{caregiver.rating}</b>
+                    <span className="text-[#737685]">
+                      ({caregiver.reviews} reviews)
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-xs">{caregiver.role}</p>
+                  <div className="mt-3 flex items-end justify-between gap-2">
+                    <div className="flex flex-wrap gap-1">
+                      {caregiver.tags.map((tag) => (
+                        <span
+                          className="rounded-sm bg-[#f0f3ff] px-2 py-1 text-[10px] font-semibold uppercase"
+                          key={tag}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <strong className="whitespace-nowrap text-[#003d9b]">
+                      {caregiver.rate > 0
+                        ? `$${caregiver.rate}/hr`
+                        : "Rate on request"}
+                    </strong>
+                  </div>
+                </div>
+              </article>
+            ))}
+            {!directoryLoading && !visibleCaregivers.length && (
+              <div className="rounded-lg border border-[#c3c6d6] bg-white p-8 text-center text-[#434654]">
+                No published caregivers match these filters.
+              </div>
+            )}
+          </div>
+          <div className="mt-8 flex justify-center gap-2 text-xs">
+            <button className="rounded border px-3 py-2">‹</button>
+            <button className="rounded bg-[#003d9b] px-3 py-2 text-white">
+              1
+            </button>
+            <button className="rounded border px-3 py-2">2</button>
+            <button className="rounded border px-3 py-2">3</button>
+            <button className="rounded border px-3 py-2">›</button>
+          </div>
+        </section>
+
+        {selected && (
+          <aside className="overflow-hidden rounded-xl border border-[#c3c6d6] bg-white shadow-sm lg:col-span-7 lg:sticky lg:top-[218px] lg:self-start">
+          <div className="h-32 bg-[#003d9b]" />
+          <div className="px-5 pb-6 sm:px-8">
+            <div className="-mt-16 flex items-end justify-between gap-4">
+              <PublicCaregiverImage
+                className="size-28 rounded-xl border-4 border-white object-cover shadow-md"
+                src={selected.image}
+                alt={selected.name}
+              />
+              <button
+                className="mb-2"
+                type="button"
+                aria-label={`Favorite ${selected.name}`}
+                onClick={() => toggleFavorite(selected.id)}
+              >
+                <Heart
+                  className={`size-6 ${favorites.includes(selected.id) ? "fill-red-500 text-red-500" : "text-white"}`}
+                />
+              </button>
+            </div>
+            <div className="mt-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              <div>
+                <h2 className="flex items-center gap-2 text-3xl font-semibold">
+                  {selected.name}
+                  <BadgeCheck className="size-5 fill-[#003d9b] text-white" />
+                </h2>
+                <p className="mt-1 text-[#737685]">{selected.role}</p>
+                <p className="mt-2 flex items-center gap-3 text-xs font-semibold">
+                  <span className="flex items-center gap-1">
+                    <Clock3 className="size-4 text-[#003d9b]" />
+                    {selected.experience}
+                  </span>
+                   <span className="flex items-center gap-1">
+                     <GraduationCap className="size-4 text-[#003d9b]" />
+                     Verified caregiver
+                  </span>
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                <strong className="text-4xl text-[#003d9b]">
+                  {selected.rate > 0
+                    ? `$${selected.rate}`
+                    : "Rate on request"}
+                </strong>
+                {selected.rate > 0 && <span>/hr</span>}
+                <p className="text-xs text-[#737685]">
+                  Contact through SwiftOpsBD
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-7 grid gap-4 sm:grid-cols-2">
+              <section className="rounded-lg border border-[#c3c6d6] bg-[#f0f3ff] p-4">
+                <h3 className="flex items-center gap-2 font-medium">
+                  <ShieldCheck className="size-5 text-[#003d9b]" />
+                  Certifications
+                </h3>
+                <ul className="mt-3 space-y-2 text-xs">
+                  {selected.certifications.map((item) => (
+                    <li key={item}>• {item}</li>
+                  ))}
+                </ul>
+              </section>
+              <section className="rounded-lg border border-[#c3c6d6] bg-[#f0f3ff] p-4">
+                <h3 className="flex items-center gap-2 font-medium">
+                  <CalendarDays className="size-5 text-[#016c47]" />
+                  Availability
+                </h3>
+                <p className="mt-4 text-xs text-[#434654]">
+                  Confirm availability when creating the care plan.
+                </p>
+              </section>
+            </div>
+
+            <section className="relative mt-4 overflow-hidden rounded-lg border border-[#c3c6d6] p-4">
+              <img
+                className="absolute inset-0 size-full object-cover opacity-45"
+                src={mapImage}
+                alt=""
+              />
+              <div className="relative">
+                <h3 className="flex items-center gap-2 font-medium">
+                  <MapPin className="size-5 text-[#003d9b]" />
+                  Service Area
+                </h3>
+                <p className="mt-1 text-xs font-medium">
+                  {selected.location}
+                </p>
+              </div>
+            </section>
+
+            <section className="mt-7">
+              <h3 className="font-medium">Biography</h3>
+              <p className="mt-4 text-sm leading-7 text-[#434654]">
+                {selected.biography}
+              </p>
+            </section>
+            <div className="mt-7 grid gap-3 border-t border-[#c3c6d6]/40 pt-5 sm:grid-cols-2">
+              <Link
+                className="flex items-center justify-center gap-2 rounded-lg bg-[#003d9b] px-5 py-4 text-center font-semibold text-white"
+                to={`/care-plan?caregiver=${selected.id}`}
+              >
+                <BadgeCheck className="size-5" />
+                Create Care Plan →
+              </Link>
+              {/* <Link
+                className="flex items-center justify-center rounded-lg border-2 border-[#003d9b] px-5 py-4 text-center font-semibold text-[#003d9b]"
+                to={`/care-plan?caregiver=${selected.id}&intent=book`}
+              >
+                Book Caregiver
+              </Link> */}
+              <button className="flex items-center justify-center gap-2 rounded-lg border-2 border-[#003d9b] px-5 py-4 font-semibold text-[#003d9b]">
+                <MessageSquareText className="size-5" />
+                Message
+              </button>
+            </div>
+          </div>
+          </aside>
+        )}
+      </main>
+      <FindCareFooter />
+    </>
+  );
+};
+
+const PublicCaregiverImage = ({ className, src, alt }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <span
+        className={`${className} grid place-items-center bg-[#e7efff] font-semibold text-[#0649ad]`}
+        role="img"
+        aria-label={alt}
+      >
+        {alt
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part[0])
+          .join("")
+          .toUpperCase()}
+      </span>
+    );
+  }
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
+export default FindCare;
