@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SwiftOpsBD Seven-Sprint Commit and Deployment Plan</title>
+  <style>
+    :root{--navy:#071a2b;--blue:#0755d3;--ink:#172033;--muted:#64748b;--line:#d7dfeb;--bg:#f3f6fb;--green:#087f5b;--amber:#a15c00;--red:#b42318}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Inter,Segoe UI,Arial,sans-serif}header{background:linear-gradient(135deg,var(--navy),#0649ad);color:white;padding:42px 24px}.wrap,main{max-width:1180px;margin:auto}h1{margin:0 0 8px;font-size:34px}h2{margin:36px 0 12px;color:#0649ad;font-size:25px}h3{margin:22px 0 9px;font-size:18px}main{padding:24px 24px 60px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:21px;margin:15px 0;box-shadow:0 5px 15px #0f172a0c}.done{border-left:5px solid var(--green);background:#effff8}.info{border-left:5px solid var(--blue)}.warn{border-left:5px solid var(--amber);background:#fff9e9}.danger{border-left:5px solid var(--red);background:#fff1f1}table{width:100%;border-collapse:collapse;background:#fff;margin:12px 0 22px;font-size:12.5px}th,td{border:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}th{background:#eaf1ff;color:#06449d}code{font-family:Consolas,monospace;background:#edf1f7;border-radius:5px;padding:2px 5px}pre{background:var(--navy);color:#eef6ff;padding:16px;border-radius:10px;overflow:auto;line-height:1.5}pre code{background:transparent;padding:0}.abdul{font-weight:800;color:#0649ad}.yusuf{font-weight:800;color:#a15c00}.status{display:inline-block;padding:2px 8px;border-radius:99px;background:#d1fae5;color:#087f5b;font-weight:800;font-size:11px}.pending{background:#dbeafe;color:#0649ad}li{margin:5px 0}footer{text-align:center;color:var(--muted);padding:24px;border-top:1px solid var(--line)}@media print{body{background:white}.card{box-shadow:none;break-inside:avoid}pre{white-space:pre-wrap}}
+  </style>
+</head>
+<body>
+<header><div class="wrap"><h1>SwiftOpsBD Seven-Sprint Git Plan</h1><p>Dependency-safe commits · accurate ownership · backend/frontend integration · Vercel and Render deployment</p></div></header>
+<main>
+  <section class="card info">
+    <h2 style="margin-top:0">Ownership</h2>
+    <p><span class="abdul">Abdul</span> commits all implementation currently present in both local working trees. <span class="yusuf">Md. Yusuf</span> contributes only new regression tests, QA evidence and genuine fixes after Abdul's baseline is pushed. Usrat has no Git commits.</p>
+    <p>No sprint authorizes automatic committing or pushing. Always inspect staged changes before each commit.</p>
+  </section>
+
+  <h2>Current audited state</h2>
+  <ul>
+    <li>Backend branch: <code>main</code>; no staged files.</li>
+    <li>Frontend branch: <code>develop</code>; no staged files.</li>
+    <li>Backend Sprint 1 already contains five commits.</li>
+    <li>Remaining backend and frontend work is still modified/untracked.</li>
+  </ul>
+
+  <section class="card done">
+    <h2 style="margin-top:0">Sprint 1 — API foundation <span class="status">COMMITTED</span></h2>
+    <p><strong>Goal:</strong> establish the Express application, error handling, CORS, runtime validation and Firebase Admin configuration.</p>
+    <table>
+      <thead><tr><th>Existing commit</th><th>Completed work</th><th>Owner/Jira</th></tr></thead>
+      <tbody>
+        <tr><td><code>567e9f2</code></td><td>Build Express API application bootstrap</td><td>Abdul · CAR-72</td></tr>
+        <tr><td><code>7953930</code></td><td>Add API error and request middleware</td><td>Abdul · CAR-72</td></tr>
+        <tr><td><code>776212f</code></td><td>Add API bootstrap and CORS tests</td><td>Abdul · CAR-72</td></tr>
+        <tr><td><code>e2cdb86</code></td><td>Configure runtime environment validation and Firebase Admin</td><td>Abdul · CAR-73</td></tr>
+        <tr><td><code>b968dfe</code></td><td>Document backend environment and deployment configuration</td><td>Abdul · CAR-91</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Exit check:</strong> <code>npm run lint</code>, <code>npm test</code>, API health endpoint.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Sprint 2 — Identity and onboarding <span class="status pending">PENDING</span></h2>
+    <p><strong>Goal:</strong> authenticate all three roles and persist caregiver/client onboarding.</p>
+    <table>
+      <thead><tr><th>#</th><th>Commit</th><th>Exact paths</th><th>Jira</th></tr></thead>
+      <tbody>
+        <tr><td>S2-B1</td><td>Implement Firebase token authentication and roles</td><td><code>server/middleware/authenticate.js</code>, <code>server/config/roles.js</code>, <code>server/services/identityService.js</code>, <code>identityService.test.js</code>, <code>server/routes/users.js</code></td><td>CAR-74</td></tr>
+        <tr><td>S2-B2</td><td>Complete caregiver onboarding API</td><td><code>server/onboardingModel.js</code>, test, <code>server/routes/onboarding.js</code></td><td>CAR-75</td></tr>
+        <tr><td>S2-B3</td><td>Implement client onboarding API</td><td><code>clientOnboardingModel.js</code>, test, <code>routes/clientOnboarding.js</code></td><td>CAR-76</td></tr>
+        <tr><td>S2-F1</td><td>Add authenticated frontend API session</td><td><code>apiClient.js</code>, <code>firebaseSession.js</code>, <code>identityService.js</code>, auth services/context and authentication form</td><td>Authentication</td></tr>
+        <tr><td>S2-F2</td><td>Protect role-specific portal and onboarding routes</td><td>Admin, caregiver and client route components</td><td>Authentication</td></tr>
+        <tr><td>S2-F3</td><td>Connect caregiver onboarding to REST API</td><td>Caregiver setup/review pages and <code>onboardingService.js</code></td><td>CAR-93</td></tr>
+        <tr><td>S2-F4</td><td>Connect client onboarding and verification</td><td>Client setup pages, provider, file upload and <code>clientOnboardingService.js</code></td><td>CAR-94</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Exit check:</strong> email/password and Google login; correct role bootstrap; caregiver/client onboarding requests return 2xx.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Sprint 3 — Storage, verification, directory and maps <span class="status pending">PENDING</span></h2>
+    <p><strong>Goal:</strong> store protected documents, approve real profiles and expose active caregivers through the public directory and Dhaka search.</p>
+    <table>
+      <thead><tr><th>#</th><th>Commit</th><th>Exact paths</th><th>Jira</th></tr></thead>
+      <tbody>
+        <tr><td>S3-B1</td><td>Add Firestore repository abstraction</td><td><code>server/repositories/</code></td><td>CAR-88</td></tr>
+        <tr><td>S3-B2</td><td>Integrate private Supabase document storage</td><td><code>supabaseStorageService.js</code>, test, <code>fileStorage.js</code>, migration script</td><td>CAR-77</td></tr>
+        <tr><td>S3-B3</td><td>Add protected medical document routes</td><td><code>routes/medicalDocuments.js</code></td><td>CAR-77</td></tr>
+        <tr><td>S3-B4</td><td>Build public and admin directory APIs</td><td><code>routes/directory.js</code>, <code>adminDirectory.js</code>, current final <code>routes/admin.js</code></td><td>CAR-78</td></tr>
+        <tr><td>S3-B5</td><td>Integrate Barikoi map service</td><td><code>barikoiService.js</code>, test, <code>routes/maps.js</code></td><td>CAR-82</td></tr>
+        <tr><td>S3-F1</td><td>Add protected profile and document rendering</td><td><code>ProtectedOnboardingImage.jsx</code>, <code>medicalDocumentService.js</code></td><td>CAR-98</td></tr>
+        <tr><td>S3-F2</td><td>Connect public caregiver directory and postal search</td><td><code>Home.jsx</code>, <code>FindCare.jsx</code>, <code>publicDirectoryService.js</code>, <code>dhakaPostalCodes.js</code></td><td>Directory</td></tr>
+        <tr><td>S3-F3</td><td>Integrate Barikoi maps and browser location</td><td><code>components/maps/</code>, map/browser-location services</td><td>CAR-82</td></tr>
+        <tr><td>S3-F4</td><td>Connect admin caregiver client and verification management</td><td>Admin caregivers, clients and verification pages; directory/verification services</td><td>CAR-98</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Exit check:</strong> private document upload/read; admin approval; suspended caregiver excluded; active caregiver visible on Home/Find Care; Barikoi renders.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Sprint 4 — Care plans, requests, matching and assignments <span class="status pending">PENDING</span></h2>
+    <p><strong>Goal:</strong> allow verified clients to create multiple care requests and allow administrators to assign verified caregivers.</p>
+    <table>
+      <thead><tr><th>#</th><th>Commit</th><th>Exact paths</th><th>Jira</th></tr></thead>
+      <tbody>
+        <tr><td>S4-B1</td><td>Implement care request model and tests</td><td><code>careRequestModel.js</code>, test</td><td>CAR-79</td></tr>
+        <tr><td>S4-B2</td><td>Add care request and care plan routes</td><td><code>routes/careRequests.js</code>, <code>carePlans.js</code></td><td>CAR-79</td></tr>
+        <tr><td>S4-B3</td><td>Implement assignment model and tests</td><td><code>assignmentModel.js</code>, test</td><td>CAR-80</td></tr>
+        <tr><td>S4-B4</td><td>Add admin matching and assignment routes</td><td><code>assignments.js</code>, <code>adminAssignments.js</code>, <code>adminCareRequests.js</code></td><td>CAR-80</td></tr>
+        <tr><td>S4-F1</td><td>Connect care plan builder and request workflow</td><td><code>CarePlanBuilder.jsx</code>, <code>careRequestService.js</code></td><td>CAR-95</td></tr>
+        <tr><td>S4-F2</td><td>Connect admin request matching</td><td><code>AdminRequestsMatching.jsx</code>, <code>assignmentService.js</code></td><td>CAR-95</td></tr>
+        <tr><td>S4-F3</td><td>Connect caregiver requested and assigned client pages</td><td>Caregiver requested/assigned/detail pages</td><td>CAR-96</td></tr>
+        <tr><td>S4-F4</td><td>Connect client request and assigned caregiver status</td><td><code>ClientDashboard.jsx</code>, <code>AssignedCaregiverPhoto.jsx</code></td><td>CAR-97</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Exit check:</strong> submitted request appears in admin matching; assignment moves to Assigned; both client and caregiver see each other.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Sprint 5 — Visits, attendance, communication and incidents <span class="status pending">PENDING</span></h2>
+    <p><strong>Goal:</strong> execute real visits, update attendance/live operations and provide role-safe messaging/SOS handling.</p>
+    <table>
+      <thead><tr><th>#</th><th>Commit</th><th>Exact paths</th><th>Jira</th></tr></thead>
+      <tbody>
+        <tr><td>S5-B1</td><td>Implement visit execution and shift APIs</td><td><code>visitExecutionModel.js</code>, test, <code>routes/visits.js</code>, <code>shifts.js</code></td><td>CAR-81</td></tr>
+        <tr><td>S5-B2</td><td>Build communication model and routes</td><td><code>communicationModel.js</code>, test, communications/admin communications routes</td><td>CAR-83</td></tr>
+        <tr><td>S5-B3</td><td>Build incident and SOS workflow</td><td><code>incidentModel.js</code>, test, incidents/admin incidents routes</td><td>CAR-83</td></tr>
+        <tr><td>S5-F1</td><td>Connect caregiver dashboard shift clock and active visit</td><td><code>CaregiverDashboard.jsx</code>, <code>CaregiverActiveVisit.jsx</code>, shift/visit services</td><td>CAR-96</td></tr>
+        <tr><td>S5-F2</td><td>Connect client attendance and live caregiver status</td><td><code>ClientAttendance.jsx</code>, <code>ClientCaregiverVerification.jsx</code></td><td>CAR-97</td></tr>
+        <tr><td>S5-F3</td><td>Connect shared communication workspace</td><td><code>components/communication/</code>, client/caregiver messages, <code>communicationService.js</code></td><td>Communication</td></tr>
+        <tr><td>S5-F4</td><td>Connect admin schedule and live operations</td><td><code>AdminSchedule.jsx</code>, <code>AdminLiveOperations.jsx</code>, <code>AdminDashboard.jsx</code></td><td>CAR-99</td></tr>
+        <tr><td>S5-F5</td><td>Connect admin messaging and incident management</td><td><code>AdminMessages.jsx</code>, <code>AdminDisputes.jsx</code>, incident/communication services</td><td>CAR-83</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Exit check:</strong> clock-in creates live visit; clock-out removes it; client calendar/log updates; communication and SOS permissions behave correctly.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Sprint 6 — Stripe, finance, payouts and reporting <span class="status pending">PENDING</span></h2>
+    <p><strong>Goal:</strong> process staged client billing, calculate platform/caregiver amounts and generate finance/report data.</p>
+    <table>
+      <thead><tr><th>#</th><th>Commit</th><th>Exact paths</th><th>Jira</th></tr></thead>
+      <tbody>
+        <tr><td>S6-B1</td><td>Integrate Stripe Checkout and webhook service</td><td><code>stripeService.js</code>, payment route integration</td><td>CAR-84</td></tr>
+        <tr><td>S6-B2</td><td>Implement staged payment model</td><td><code>paymentModel.js</code>, test, <code>routes/payments.js</code></td><td>CAR-84</td></tr>
+        <tr><td>S6-B3</td><td>Add caregiver advance and payout ledger</td><td><code>caregiverAdvanceService.js</code>, <code>adminPayments.js</code></td><td>CAR-85</td></tr>
+        <tr><td>S6-B4</td><td>Generate caregiver payslips</td><td><code>payslipService.js</code>, test</td><td>CAR-85</td></tr>
+        <tr><td>S6-B5</td><td>Add admin overview finance and reporting APIs</td><td><code>adminReportModel.js</code>, test, admin overview/reports routes</td><td>CAR-86</td></tr>
+        <tr><td>S6-B6</td><td>Add real Firebase admin-user API</td><td><code>adminUsers.js</code></td><td>CAR-87</td></tr>
+        <tr><td>S6-F1</td><td>Connect Stripe care checkout and client payments</td><td><code>CareCheckout.jsx</code>, <code>ClientPayments.jsx</code>, <code>paymentService.js</code></td><td>CAR-100</td></tr>
+        <tr><td>S6-F2</td><td>Connect caregiver payments and analytics reports</td><td><code>CaregiverPayments.jsx</code>, <code>CaregiverReports.jsx</code></td><td>CAR-100</td></tr>
+        <tr><td>S6-F3</td><td>Connect admin finance reports and real users</td><td><code>AdminFinance.jsx</code>, <code>AdminReports.jsx</code>, <code>AdminUsers.jsx</code>, overview/user services</td><td>CAR-100</td></tr>
+        <tr><td>S6-F4</td><td>Connect admin documents and client medical history</td><td><code>AdminDocuments.jsx</code>, <code>ClientMedicationUpload.jsx</code></td><td>Documents</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Exit check:</strong> Stripe test deposit succeeds; webhook records payment; balances reconcile; payout/payslip generated; dashboard totals use Firestore data.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Sprint 7 — Validation, documentation, Yusuf QA and deployment <span class="status pending">PENDING</span></h2>
+    <p><strong>Goal:</strong> finish repository configuration, document APIs, obtain genuine QA contributions and deploy a single verified release.</p>
+    <table>
+      <thead><tr><th>#</th><th>Owner</th><th>Commit</th><th>Paths</th></tr></thead>
+      <tbody>
+        <tr><td>S7-B1</td><td class="abdul">Abdul</td><td>Add validation and remaining regression tests</td><td><code>server/validation/</code> and all tests already present locally</td></tr>
+        <tr><td>S7-B2</td><td class="abdul">Abdul</td><td>Publish OpenAPI and Swagger testing guide</td><td><code>server/docs/</code>, Swagger script, backend <code>docs/</code></td></tr>
+        <tr><td>S7-B3</td><td class="abdul">Abdul</td><td>Complete API documentation and dependency configuration</td><td><code>README.md</code>, <code>API.md</code>, <code>package.json</code>, <code>package-lock.json</code></td></tr>
+        <tr><td>S7-F1</td><td class="abdul">Abdul</td><td>Configure Vercel SPA and frontend environment template</td><td><code>vercel.json</code>, frontend <code>.env.example</code>, <code>.gitignore</code>, package files</td></tr>
+        <tr><td>S7-F2</td><td class="abdul">Abdul</td><td>Add project technical and team handoff documentation</td><td>Selected frontend <code>docs/</code> files</td></tr>
+        <tr><td>S7-Y1</td><td class="yusuf">Yusuf</td><td>CAR-73 add environment regression results</td><td>New <code>environment.regression.test.js</code> and QA document created after cloning</td></tr>
+        <tr><td>S7-Y2</td><td class="yusuf">Yusuf</td><td>CAR-74 test Firebase token and role restrictions</td><td>New authentication regression test and role matrix</td></tr>
+        <tr><td>S7-Y3</td><td class="yusuf">Yusuf</td><td>CAR-78 test verification and directory visibility</td><td>New QA/regression files</td></tr>
+        <tr><td>S7-Y4</td><td class="yusuf">Yusuf</td><td>CAR-88 test missing Firestore records</td><td>New repository regression test</td></tr>
+        <tr><td>S7-Y5</td><td class="yusuf">Yusuf</td><td>CAR-89 document Swagger acceptance results</td><td>New Swagger QA result document</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Exit check:</strong> all checks pass, secrets are absent, Render and Vercel environment variables are configured, production smoke test succeeds.</p>
+  </section>
+
+  <h2>Commit procedure for every sprint</h2>
+  <pre><code># 1. Stage only the listed files for one commit
+git add &lt;exact paths&gt;
+
+# 2. Review; press q to exit the diff viewer
+git diff --cached --stat
+git diff --cached
+
+# 3. Commit only if staged content matches the message
+git commit -m "&lt;message from the sprint table&gt;"
+
+# 4. Confirm what remains
+git status --short</code></pre>
+
+  <h2>Push strategy</h2>
+  <section class="card warn">
+    <p><strong>Recommended:</strong> create all Abdul baseline commits locally through Sprints 2–7, run the complete tests/build, then push each repository once. This avoids repeatedly deploying partially integrated production code while preserving every logical commit in Git history.</p>
+  </section>
+  <h3>Final backend push</h3>
+  <pre><code>cd /d/SoftwareProject/swyftopsbd-api
+npm run lint
+npm test
+git diff --check
+git status --short
+git log --oneline --decorate -40
+git push origin main</code></pre>
+
+  <h3>Final frontend push</h3>
+  <pre><code>cd /d/SoftwareProject/swyftopsbd
+npm run lint
+npm run build
+git diff --check
+git status --short
+git log --oneline --decorate -40
+git push origin develop</code></pre>
+  <p>If Vercel production watches <code>main</code>, merge <code>develop</code> into <code>main</code> using a reviewed pull request.</p>
+
+  <h2>Yusuf timing</h2>
+  <ol>
+    <li>Abdul pushes the complete backend baseline.</li>
+    <li>Yusuf clones <code>SwyftOpsBD-API</code> from GitHub.</li>
+    <li>Yusuf creates one branch per assigned Jira QA task.</li>
+    <li>Yusuf creates new tests/evidence and fixes only reproduced defects.</li>
+    <li>Yusuf opens pull requests; Abdul reviews and merges them.</li>
+    <li>Render redeploys after each accepted backend pull request.</li>
+  </ol>
+
+  <h2>Files never committed</h2>
+  <ul>
+    <li><code>.env</code>, <code>.env.local</code> and Firebase service-account JSON</li>
+    <li>Stripe, Supabase or Barikoi secret values</li>
+    <li><code>node_modules/</code>, <code>dist/</code>, <code>uploads/</code></li>
+    <li>Real NIDs, licenses, medical documents or user uploads</li>
+  </ul>
+
+  <section class="card danger">
+    <h2 style="margin-top:0">Stop condition</h2>
+    <p>If lint, tests, build, secret review or staged-diff review fails, do not push. Correct the current sprint while its changes are still isolated.</p>
+  </section>
+</main>
+<footer>SwiftOpsBD · seven-sprint commit and deployment plan · 15 August 2026</footer>
+</body>
+</html>

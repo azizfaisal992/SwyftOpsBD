@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SwiftOpsBD Final Safe Contribution Workflow</title>
+  <style>
+    :root{--navy:#071a2b;--blue:#0755d3;--ink:#172033;--muted:#64748b;--line:#d7dfeb;--bg:#f3f6fb;--green:#087f5b;--amber:#a15c00;--red:#b42318}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Inter,Segoe UI,Arial,sans-serif}
+    header{background:linear-gradient(135deg,var(--navy),#0649ad);color:#fff;padding:42px 24px}.wrap,main{max-width:1120px;margin:auto}
+    h1{font-size:34px;margin:0 0 8px}h2{color:#0649ad;font-size:24px;margin:34px 0 12px}h3{font-size:18px;margin:23px 0 9px}
+    main{padding:24px 24px 60px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:21px;margin:15px 0;box-shadow:0 5px 16px #0f172a0c}
+    .info{border-left:5px solid var(--blue)}.ok{border-left:5px solid var(--green);background:#effff8}.warn{border-left:5px solid var(--amber);background:#fff9e9}.danger{border-left:5px solid var(--red);background:#fff1f1}
+    table{width:100%;border-collapse:collapse;background:#fff;margin:12px 0 22px;font-size:13px}th,td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}th{background:#eaf1ff;color:#06449d}
+    code{font-family:Consolas,monospace;background:#edf1f7;border-radius:5px;padding:2px 5px}pre{background:var(--navy);color:#eef6ff;padding:16px;border-radius:10px;overflow:auto;line-height:1.5}pre code{background:transparent;padding:0}
+    .abdul{font-weight:800;color:#0649ad}.yusuf{font-weight:800;color:#a15c00}.no{font-weight:800;color:#b42318}li{margin:6px 0}.small{font-size:12px;color:var(--muted)}
+    footer{text-align:center;color:var(--muted);padding:24px;border-top:1px solid var(--line)}@media print{body{background:#fff}.card{box-shadow:none;break-inside:avoid}pre{white-space:pre-wrap}}
+  </style>
+</head>
+<body>
+<header><div class="wrap"><h1>SwiftOpsBD Final Safe Contribution Workflow</h1><p>Accurate ownership · low-conflict Git collaboration · Jira evidence · deployment sequence</p></div></header>
+<main>
+  <section class="card ok">
+    <h2 style="margin-top:0">Final decision</h2>
+    <p><span class="abdul">Abdul Aziz Faisal</span> commits every file that is currently modified or untracked in both local repositories. These files are already part of Abdul's local implementation, regardless of whether Git currently labels them modified or untracked.</p>
+    <p><span class="yusuf">Md. Yusuf Adnan</span> begins contributing only after Abdul pushes the complete tested baseline. Yusuf creates new QA documents and regression tests himself. He edits existing application code only if one of his new tests reproduces a real defect.</p>
+    <p><span class="no">Usrat makes no Git commits or pushes.</span> A Jira display name is not evidence of code authorship.</p>
+  </section>
+
+  <section class="card danger">
+    <h2 style="margin-top:0">Meaning of “untracked”</h2>
+    <p>An untracked file is simply a file Git has not recorded yet. It does not mean the file has no author or may be assigned to another contributor. All existing untracked source, tests, services, documentation and configuration were created as part of Abdul's local implementation and must be committed by Abdul.</p>
+  </section>
+
+  <h2>1. Ownership matrix</h2>
+  <table>
+    <thead><tr><th>Work category</th><th>Owner</th><th>Allowed Git action</th></tr></thead>
+    <tbody>
+      <tr><td>Every currently modified frontend file</td><td class="abdul">Abdul</td><td>Review, stage, commit and push from the frontend repository.</td></tr>
+      <tr><td>Every currently untracked frontend file</td><td class="abdul">Abdul</td><td>Review for secrets/generated content, then commit appropriate source and configuration.</td></tr>
+      <tr><td>Every currently modified backend file</td><td class="abdul">Abdul</td><td>Review, stage, commit and push from the API repository.</td></tr>
+      <tr><td>Every currently untracked backend source/test/document</td><td class="abdul">Abdul</td><td>Commit as part of the tested baseline.</td></tr>
+      <tr><td>New regression tests created after baseline</td><td class="yusuf">Yusuf</td><td>Create on a Jira-specific branch, test, commit and open a pull request.</td></tr>
+      <tr><td>New QA and Swagger test-result documents</td><td class="yusuf">Yusuf</td><td>Create from his own testing work and commit through a pull request.</td></tr>
+      <tr><td>Existing backend source with a reproduced defect</td><td class="yusuf">Yusuf may fix</td><td>Only after a failing test demonstrates the defect; include test and fix in the pull request.</td></tr>
+      <tr><td>Existing frontend/backend code copied from Abdul's ZIP</td><td class="no">Nobody else</td><td>Must not be committed under another person's Git identity.</td></tr>
+      <tr><td>Usrat Jira assignments</td><td class="no">No Git owner</td><td>Reassign implementation cards to Abdul if the board must reflect actual authorship.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2. Abdul's purpose and responsibility</h2>
+  <ul>
+    <li>Lead developer and system integrator for the React frontend and Express REST API.</li>
+    <li>Owner of the complete current working tree in both repositories.</li>
+    <li>Organizer of logical baseline commits.</li>
+    <li>Reviewer of Yusuf's debugging and regression-test pull requests.</li>
+    <li>Deployment owner for Vercel, Render, Firebase, Supabase, Stripe and Barikoi configuration.</li>
+    <li>Responsible for final end-to-end verification.</li>
+  </ul>
+
+  <h2>3. Abdul's baseline must include</h2>
+  <table>
+    <thead><tr><th>Repository</th><th>Current implementation areas Abdul commits</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SwyftOpsBD-API</strong><br><code>main</code></td><td>Express application and middleware; Firebase authentication and roles; caregiver/client onboarding; Firestore repositories; Supabase documents; directory and verification; care requests and assignments; shifts and visits; Barikoi maps; communication and incidents; Stripe billing; caregiver earnings and payslips; admin overview, finance, reports and users; validation, tests, Swagger and deployment documentation.</td></tr>
+      <tr><td><strong>SwyftOpsBD</strong><br><code>develop</code></td><td>Authenticated API client; role routes; caregiver and client onboarding; public directory; care plan and Stripe checkout; Barikoi maps and Dhaka postal search; caregiver portal; client portal; admin directory, verification, requests, schedule, live operations, finance, documents, messaging, reports, disputes and users; Vercel configuration.</td></tr>
+    </tbody>
+  </table>
+
+  <section class="card warn">
+    <h3 style="margin-top:0">Repeatedly edited files</h3>
+    <p>Git cannot recover the chronological order of edits made before the first commit. Abdul may divide a large file with <code>git add -p</code> only when its hunks are independent. Otherwise, commit the final file once with its primary feature. Never commit an unchanged file repeatedly to increase the count.</p>
+  </section>
+
+  <h2>4. Abdul's baseline sequence</h2>
+  <h3>Backend</h3>
+  <pre><code>cd /d/SoftwareProject/swyftopsbd-api
+git status --short
+npm run lint
+npm test
+git diff --check
+
+# Repeat using exact feature paths, not "git add ."
+git add &lt;exact backend feature files&gt;
+git diff --cached --stat
+git diff --cached
+git commit -m "&lt;logical backend feature message&gt;"
+
+git status --short
+git log --oneline --decorate -30
+git push origin main</code></pre>
+
+  <h3>Frontend</h3>
+  <pre><code>cd /d/SoftwareProject/swyftopsbd
+git status --short
+npm run lint
+npm run build
+git diff --check
+
+# Repeat using exact feature paths
+git add &lt;exact frontend feature files&gt;
+git diff --cached --stat
+git diff --cached
+git commit -m "&lt;logical frontend feature message&gt;"
+
+git status --short
+git log --oneline --decorate -30
+git push origin develop</code></pre>
+
+  <p>If Vercel watches <code>main</code> rather than <code>develop</code>, use a reviewed pull request from <code>develop</code> into <code>main</code>.</p>
+
+  <h2>5. When Yusuf may start</h2>
+  <p>Yusuf starts only when all of the following are true:</p>
+  <ul>
+    <li>Abdul's backend baseline has been pushed to <code>origin/main</code>.</li>
+    <li>Backend lint and all automated tests pass.</li>
+    <li>Render has deployed the baseline successfully.</li>
+    <li>Yusuf clones from GitHub rather than using the ZIP as a repository.</li>
+    <li>Yusuf configures his own Git name and email.</li>
+    <li>Yusuf creates a separate branch for each Jira task.</li>
+  </ul>
+
+  <h2>6. New files Yusuf should create himself</h2>
+  <p>These paths do not currently exist as part of Abdul's baseline plan. Yusuf should create their content from his own testing:</p>
+  <pre><code>docs/qa/CAR-73-environment-test-results.md
+docs/qa/CAR-74-auth-role-matrix.md
+docs/qa/CAR-78-directory-verification-results.md
+docs/qa/CAR-89-swagger-acceptance-results.md
+
+server/config/environment.regression.test.js
+server/middleware/authenticate.regression.test.js
+server/repositories/firestoreRepository.regression.test.js</code></pre>
+
+  <h2>7. Yusuf's Jira-specific contribution plan</h2>
+  <table>
+    <thead><tr><th>Jira</th><th>Branch</th><th>New work Yusuf performs</th><th>Suggested commit</th></tr></thead>
+    <tbody>
+      <tr><td>CAR-73</td><td><code>test/CAR-73-environment</code></td><td>Create environment/CORS regression tests and record configuration results.</td><td><code>CAR-73 add environment configuration regression tests</code></td></tr>
+      <tr><td>CAR-74</td><td><code>test/CAR-74-auth-roles</code></td><td>Create expired-token and role allow/deny tests plus an authentication matrix.</td><td><code>CAR-74 test Firebase tokens and role restrictions</code></td></tr>
+      <tr><td>CAR-78</td><td><code>test/CAR-78-directory</code></td><td>Test admin verification, caregiver suspension and public-directory visibility; document results.</td><td><code>CAR-78 add directory verification regression coverage</code></td></tr>
+      <tr><td>CAR-88</td><td><code>test/CAR-88-firestore</code></td><td>Create missing-document and update-semantics repository tests.</td><td><code>CAR-88 test missing Firestore record handling</code></td></tr>
+      <tr><td>CAR-89</td><td><code>test/CAR-89-swagger</code></td><td>Execute Swagger acceptance testing and create the results document; add validation edge cases.</td><td><code>CAR-89 document Swagger API acceptance results</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>8. Rule for Yusuf editing an existing source file</h2>
+  <ol>
+    <li>Create a new regression test.</li>
+    <li>Run it and capture the failure.</li>
+    <li>Reference the failure in the Jira card.</li>
+    <li>Apply the smallest source-code fix.</li>
+    <li>Run the new test and the complete test suite.</li>
+    <li>Commit the test and fix together or as two meaningful commits.</li>
+    <li>Open a pull request for Abdul's review.</li>
+  </ol>
+
+  <h2>9. Yusuf's exact Git workflow</h2>
+  <pre><code>git clone https://github.com/azizfaisal992/SwyftOpsBD-API.git
+cd SwyftOpsBD-API
+npm install
+npm run lint
+npm test
+
+git switch -c test/CAR-73-environment origin/main
+
+# Create Yusuf's own new regression/QA files
+git status --short
+git diff
+npm run lint
+npm test
+
+git add server/config/environment.regression.test.js \
+  docs/qa/CAR-73-environment-test-results.md
+git diff --cached
+git commit -m "CAR-73 add environment configuration regression tests"
+git push -u origin test/CAR-73-environment</code></pre>
+  <p>Yusuf then opens a pull request into backend <code>main</code>. After Abdul merges it, Yusuf starts the next Jira branch from the newest <code>origin/main</code>.</p>
+
+  <h2>10. ZIP policy</h2>
+  <section class="card danger">
+    <p>Do not use the ZIP as Yusuf's Git working copy and do not paste it over a clone. The ZIP may be kept only as a read-only backup/reference.</p>
+    <p>Never transfer or commit <code>.git</code>, <code>.env</code>, Firebase credentials, Stripe secrets, Supabase secret keys, <code>node_modules</code>, <code>dist</code>, <code>uploads</code>, real NIDs, licenses or medical documents.</p>
+  </section>
+
+  <h2>11. Jira evidence required from Yusuf</h2>
+  <ul>
+    <li>Branch URL and pull-request URL.</li>
+    <li>Description of the exact scenario he tested.</li>
+    <li>New test or QA document created by him.</li>
+    <li>Before/after evidence if he fixed a defect.</li>
+    <li><code>npm run lint</code> result.</li>
+    <li>Complete <code>npm test</code> result.</li>
+    <li>Abdul's review and merge confirmation.</li>
+  </ul>
+
+  <h2>12. Conflict prevention</h2>
+  <ul>
+    <li>One Jira task per branch.</li>
+    <li>Always branch from the latest <code>origin/main</code>.</li>
+    <li>Prefer new test/QA files to changing high-traffic application files.</li>
+    <li>Do not work on the same Jira branch simultaneously.</li>
+    <li>Do not commit formatting changes unrelated to the Jira task.</li>
+    <li>Never force-push <code>main</code> or <code>develop</code>.</li>
+  </ul>
+
+  <h2>13. Final deployment order</h2>
+  <ol>
+    <li>Abdul pushes the tested backend baseline to API <code>main</code>.</li>
+    <li>Verify Render health, Swagger, Firebase, Firestore, Supabase and Stripe webhook behavior.</li>
+    <li>Abdul pushes the frontend baseline to <code>develop</code> and then the configured Vercel production branch.</li>
+    <li>Verify authentication, onboarding, deposit, matching, assignment, visit and payout end to end.</li>
+    <li>Yusuf submits QA/debugging pull requests one at a time.</li>
+    <li>Abdul merges only passing, reviewed changes.</li>
+    <li>Render automatically redeploys merged backend changes.</li>
+  </ol>
+
+  <section class="card info">
+    <h2 style="margin-top:0">Final ownership statement for faculty</h2>
+    <p>Abdul developed and integrated the current SwiftOpsBD frontend and backend baseline. Md. Yusuf contributed backend quality assurance through independently created regression tests, API verification evidence and specific bug fixes submitted by pull request. Usrat did not contribute Git commits.</p>
+  </section>
+
+  <section class="card warn">
+    <strong>No Git mutation has been authorized by this document.</strong> Review staged files before every commit. Commit and push only after explicit approval.
+  </section>
+</main>
+<footer>SwiftOpsBD · final safe team contribution workflow · 15 August 2026</footer>
+</body>
+</html>

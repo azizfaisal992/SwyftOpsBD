@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SwiftOpsBD — Abdul and Md. Yusuf Commit Ownership Plan</title>
+  <style>
+    :root{--navy:#071a2b;--blue:#0755d3;--ink:#172033;--muted:#64748b;--line:#d6deeb;--bg:#f3f6fb;--green:#087f5b;--orange:#ad5a00;--red:#b42318}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Inter,Segoe UI,Arial,sans-serif}
+    header{background:linear-gradient(135deg,var(--navy),#0649ad);color:#fff;padding:42px 24px}.wrap,main{max-width:1220px;margin:auto}
+    h1{font-size:34px;margin:0 0 8px}h2{color:#0649ad;margin:36px 0 12px;font-size:25px}h3{margin:24px 0 9px;font-size:19px}
+    main{padding:24px 24px 64px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:21px;margin:15px 0;box-shadow:0 4px 14px #0f172a0b}
+    .info{border-left:5px solid var(--blue)}.warn{border-left:5px solid var(--orange);background:#fff9e9}.danger{border-left:5px solid var(--red);background:#fff1f1}.ok{border-left:5px solid var(--green);background:#effff8}
+    table{width:100%;border-collapse:collapse;background:#fff;margin:12px 0 22px;font-size:12.5px}th,td{border:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}th{background:#eaf1ff;color:#06449d}
+    code{font-family:Consolas,monospace;background:#edf1f7;border-radius:5px;padding:2px 5px}pre{background:var(--navy);color:#eef6ff;padding:16px;border-radius:10px;overflow:auto;line-height:1.5}pre code{background:transparent;padding:0}
+    .abdul{font-weight:800;color:#0649ad}.yusuf{font-weight:800;color:#ad5a00}.none{font-weight:800;color:#b42318}.tag{display:inline-block;border-radius:99px;padding:2px 8px;background:#dbeafe;color:#0649ad;font-weight:700;font-size:11px}
+    li{margin:5px 0}.small{font-size:12px;color:var(--muted)}footer{text-align:center;color:var(--muted);padding:24px;border-top:1px solid var(--line)}
+    @media print{body{background:#fff}.card{box-shadow:none;break-inside:avoid}table{font-size:10px}pre{white-space:pre-wrap}}
+  </style>
+</head>
+<body>
+<header><div class="wrap"><h1>SwiftOpsBD Commit Ownership Plan</h1><p>Corrected handoff for Abdul Aziz Faisal and Md. Yusuf Adnan · Usrat has no Git contribution</p></div></header>
+<main>
+  <section class="card info">
+    <h2 style="margin-top:0">Correct project roles</h2>
+    <table>
+      <thead><tr><th>Person</th><th>Actual project role</th><th>Git responsibility</th><th>Jira interpretation</th></tr></thead>
+      <tbody>
+        <tr><td class="abdul">Abdul Aziz Faisal</td><td>Lead developer, system integrator and deployment owner</td><td>Commits and pushes all implementation that currently exists only in the local frontend and backend repositories.</td><td>Owns the technical implementation even where the Jira card currently displays another name.</td></tr>
+        <tr><td class="yusuf">Md. Yusuf Adnan</td><td>Debugging, validation and API quality contributor</td><td>After Abdul pushes the baseline, Yusuf clones it, reproduces bugs, edits assigned modules, adds tests and submits pull requests.</td><td>CAR-73, CAR-74, CAR-78, CAR-88 and CAR-89 represent his future debugging/review responsibility.</td></tr>
+        <tr><td class="none">Usrat</td><td>Name is present on selected Jira tasks only</td><td><strong>No commits and no pushes.</strong> Do not use her name, email or Git identity for any commit.</td><td>Jira assignment does not prove Git authorship. Reassign CAR-84, CAR-85 and CAR-100 to Abdul if the board must reflect implementation ownership.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card danger">
+    <h2 style="margin-top:0">What Git can and cannot reconstruct</h2>
+    <p>Many local files were edited repeatedly over several days, but no intermediate commits exist. Git currently sees only one final difference between the last commit and the working tree. It cannot recover the historical order of those edits.</p>
+    <ul>
+      <li>Abdul may split the current diff into logical, independently testable commits.</li>
+      <li>Use <code>git add -p path/to/file</code> only when separate hunks clearly belong to separate features.</li>
+      <li>Do not stage the same unchanged final file repeatedly just to increase the commit count.</li>
+      <li>Yusuf cannot honestly commit Abdul's existing final code. His commits begin after the baseline and must include his own debugging or test changes.</li>
+    </ul>
+  </section>
+
+  <h2>1. High-level ownership split</h2>
+  <table>
+    <thead><tr><th>Area</th><th>Existing local code owner</th><th>Yusuf's post-baseline responsibility</th></tr></thead>
+    <tbody>
+      <tr><td>Express application, routes and services</td><td class="abdul">Abdul</td><td>Review only where covered by his Jira debug cards</td></tr>
+      <tr><td>Firebase Admin and environment handling</td><td class="abdul">Abdul commits current implementation</td><td class="yusuf">CAR-73 debugging and regression tests</td></tr>
+      <tr><td>Firebase authentication and roles</td><td class="abdul">Abdul commits current implementation</td><td class="yusuf">CAR-74 expired-token/role debugging and tests</td></tr>
+      <tr><td>Admin directory and verification</td><td class="abdul">Abdul commits current implementation</td><td class="yusuf">CAR-78 mapping/suspension/verification debugging</td></tr>
+      <tr><td>Firestore repositories</td><td class="abdul">Abdul commits current implementation</td><td class="yusuf">CAR-88 missing-record and update-semantics tests</td></tr>
+      <tr><td>Validation and test suite</td><td class="abdul">Abdul commits all tests already present locally</td><td class="yusuf">CAR-89 adds new regression tests after running the baseline</td></tr>
+      <tr><td>Stripe, payments, payout and payslips</td><td class="abdul">Abdul</td><td>No ownership unless Abdul later assigns a real defect</td></tr>
+      <tr><td>All frontend API integration and UI work</td><td class="abdul">Abdul</td><td>Optional QA only; no copying existing JSX as Yusuf's work</td></tr>
+      <tr><td>Vercel/Render deployment</td><td class="abdul">Abdul</td><td>May independently verify deployed endpoints and report defects</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2. Abdul's exact backend baseline groups</h2>
+  <p>These groups cover every currently modified or untracked backend source area. Each group should be committed only after reviewing its staged diff. Shared files are assigned to the earliest commit where the complete file is required.</p>
+  <table>
+    <thead><tr><th>#</th><th>Commit message</th><th>Files/paths to stage</th><th>Jira</th></tr></thead>
+    <tbody>
+      <tr><td>AB-B01</td><td>Build Express API application bootstrap</td><td><code>server/app.js</code>, <code>server/index.js</code></td><td>CAR-72</td></tr>
+      <tr><td>AB-B02</td><td>Add API error and request middleware</td><td><code>server/errors/</code>, <code>server/middleware/errorHandler.js</code>, <code>notFound.js</code>, <code>requestId.js</code>, <code>requestTiming.js</code></td><td>CAR-72</td></tr>
+      <tr><td>AB-B03</td><td>Add API bootstrap and CORS tests</td><td><code>server/app.test.js</code></td><td>CAR-72</td></tr>
+      <tr><td>AB-B04</td><td>Configure runtime environment validation</td><td><code>server/config/environment.js</code>, <code>environment.test.js</code>, relevant hunks of <code>.env.example</code></td><td>CAR-73</td></tr>
+      <tr><td>AB-B05</td><td>Configure Firebase Admin and Firestore transport</td><td><code>server/firebaseAdmin.js</code></td><td>CAR-73</td></tr>
+      <tr><td>AB-B06</td><td>Add Firebase authentication middleware</td><td><code>server/middleware/authenticate.js</code>, <code>server/config/roles.js</code></td><td>CAR-74</td></tr>
+      <tr><td>AB-B07</td><td>Add identity and user bootstrap services</td><td><code>server/services/identityService.js</code>, <code>identityService.test.js</code>, <code>server/routes/users.js</code></td><td>CAR-74</td></tr>
+      <tr><td>AB-B08</td><td>Extend caregiver onboarding domain model</td><td><code>server/onboardingModel.js</code>, <code>onboardingModel.test.js</code></td><td>CAR-75</td></tr>
+      <tr><td>AB-B09</td><td>Connect caregiver onboarding REST endpoints</td><td><code>server/routes/onboarding.js</code></td><td>CAR-75</td></tr>
+      <tr><td>AB-B10</td><td>Implement client onboarding API</td><td><code>clientOnboardingModel.js</code>, <code>clientOnboardingModel.test.js</code>, <code>routes/clientOnboarding.js</code></td><td>CAR-76</td></tr>
+      <tr><td>AB-B11</td><td>Add private Supabase storage integration</td><td><code>supabaseStorageService.js</code>, <code>supabaseStorageService.test.js</code></td><td>CAR-77</td></tr>
+      <tr><td>AB-B12</td><td>Add protected file and medical document workflow</td><td><code>fileStorage.js</code>, <code>routes/medicalDocuments.js</code>, <code>scripts/migrateLocalFilesToSupabase.js</code></td><td>CAR-77</td></tr>
+      <tr><td>AB-B13</td><td>Build public and admin directory endpoints</td><td><code>routes/directory.js</code>, <code>routes/adminDirectory.js</code>, relevant final hunks of <code>routes/admin.js</code></td><td>CAR-78</td></tr>
+      <tr><td>AB-B14</td><td>Implement care request model and validation</td><td><code>careRequestModel.js</code>, <code>careRequestModel.test.js</code></td><td>CAR-79</td></tr>
+      <tr><td>AB-B15</td><td>Add care request and care plan routes</td><td><code>routes/careRequests.js</code>, <code>routes/carePlans.js</code></td><td>CAR-79</td></tr>
+      <tr><td>AB-B16</td><td>Implement caregiver assignment domain model</td><td><code>assignmentModel.js</code>, <code>assignmentModel.test.js</code></td><td>CAR-80</td></tr>
+      <tr><td>AB-B17</td><td>Add matching and assignment endpoints</td><td><code>routes/assignments.js</code>, <code>adminAssignments.js</code>, <code>adminCareRequests.js</code></td><td>CAR-80</td></tr>
+      <tr><td>AB-B18</td><td>Implement shift and visit execution workflow</td><td><code>visitExecutionModel.js</code>, <code>visitExecutionModel.test.js</code>, <code>routes/shifts.js</code>, <code>routes/visits.js</code></td><td>CAR-81</td></tr>
+      <tr><td>AB-B19</td><td>Integrate Barikoi maps and Dhaka location services</td><td><code>barikoiService.js</code>, <code>barikoiService.test.js</code>, <code>routes/maps.js</code></td><td>CAR-82</td></tr>
+      <tr><td>AB-B20</td><td>Build communication API and access rules</td><td><code>communicationModel.js</code>, <code>communicationModel.test.js</code>, <code>routes/communications.js</code>, <code>adminCommunications.js</code></td><td>CAR-83</td></tr>
+      <tr><td>AB-B21</td><td>Build incident and SOS workflow</td><td><code>incidentModel.js</code>, <code>incidentModel.test.js</code>, <code>routes/incidents.js</code>, <code>adminIncidents.js</code></td><td>CAR-83</td></tr>
+      <tr><td>AB-B22</td><td>Integrate Stripe Checkout and webhook processing</td><td><code>services/stripeService.js</code>, relevant payment route hunks</td><td>CAR-84</td></tr>
+      <tr><td>AB-B23</td><td>Implement staged client billing model</td><td><code>paymentModel.js</code>, <code>paymentModel.test.js</code>, <code>routes/payments.js</code></td><td>CAR-84</td></tr>
+      <tr><td>AB-B24</td><td>Retain SSLCommerz service compatibility tests</td><td><code>sslCommerzService.js</code>, <code>sslCommerzService.test.js</code></td><td>CAR-84</td></tr>
+      <tr><td>AB-B25</td><td>Add caregiver advance and payout ledger</td><td><code>caregiverAdvanceService.js</code>, <code>routes/adminPayments.js</code></td><td>CAR-85</td></tr>
+      <tr><td>AB-B26</td><td>Generate caregiver payout payslips</td><td><code>payslipService.js</code>, <code>payslipService.test.js</code></td><td>CAR-85</td></tr>
+      <tr><td>AB-B27</td><td>Add admin overview and finance reporting</td><td><code>adminReportModel.js</code>, test, <code>routes/adminOverview.js</code>, <code>adminReports.js</code></td><td>CAR-86</td></tr>
+      <tr><td>AB-B28</td><td>Add real Firebase admin-user listing</td><td><code>routes/adminUsers.js</code></td><td>CAR-87</td></tr>
+      <tr><td>AB-B29</td><td>Add Firestore repository abstraction</td><td><code>server/repositories/</code></td><td>CAR-88</td></tr>
+      <tr><td>AB-B30</td><td>Add request validation utilities and tests</td><td><code>server/validation/</code></td><td>CAR-89</td></tr>
+      <tr><td>AB-B31</td><td>Publish OpenAPI and Swagger guide</td><td><code>server/docs/openapi.js</code>, <code>scripts/generateSwaggerGuide.js</code>, <code>docs/SwiftOpsBD-Swagger-*</code></td><td>CAR-90</td></tr>
+      <tr><td>AB-B32</td><td>Document backend setup and deployment</td><td><code>README.md</code>, <code>API.md</code>, remaining <code>.env.example</code> hunks</td><td>CAR-91</td></tr>
+      <tr><td>AB-B33</td><td>Update backend dependencies and scripts</td><td><code>package.json</code>, <code>package-lock.json</code></td><td>CAR-72, CAR-90</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Abdul's exact frontend baseline groups</h2>
+  <table>
+    <thead><tr><th>#</th><th>Commit message</th><th>Files/paths to stage</th><th>Jira</th></tr></thead>
+    <tbody>
+      <tr><td>AB-F01</td><td>Add authenticated API client and Firebase session handling</td><td><code>apiClient.js</code>, <code>firebaseSession.js</code>, <code>identityService.js</code>, auth services</td><td>Authentication</td></tr>
+      <tr><td>AB-F02</td><td>Connect global authentication context and role routes</td><td><code>AuthProvider.jsx</code>, <code>auth-context.js</code>, all portal/onboarding route components, <code>AuthenticationForm.jsx</code></td><td>Authentication</td></tr>
+      <tr><td>AB-F03</td><td>Connect caregiver onboarding to the REST API</td><td><code>CaregiverProfileSetup.jsx</code>, <code>CaregiverReview.jsx</code>, <code>onboardingService.js</code></td><td>CAR-93</td></tr>
+      <tr><td>AB-F04</td><td>Connect client onboarding and verification</td><td>Client setup pages, <code>ClientFileUpload.jsx</code>, provider, <code>clientOnboardingService.js</code></td><td>CAR-94</td></tr>
+      <tr><td>AB-F05</td><td>Add protected onboarding image rendering</td><td><code>ProtectedOnboardingImage.jsx</code>, <code>medicalDocumentService.js</code></td><td>CAR-94, CAR-98</td></tr>
+      <tr><td>AB-F06</td><td>Connect care plan creation and request service</td><td><code>CarePlanBuilder.jsx</code>, <code>careRequestService.js</code></td><td>CAR-95</td></tr>
+      <tr><td>AB-F07</td><td>Integrate Stripe care checkout</td><td><code>CareCheckout.jsx</code>, <code>paymentService.js</code></td><td>CAR-100</td></tr>
+      <tr><td>AB-F08</td><td>Connect public caregiver data to home and Find Care</td><td><code>Home.jsx</code>, <code>FindCare.jsx</code>, <code>publicDirectoryService.js</code></td><td>Directory</td></tr>
+      <tr><td>AB-F09</td><td>Add Dhaka postal search and Barikoi map components</td><td><code>dhakaPostalCodes.js</code>, <code>components/maps/</code>, map/browser-location services</td><td>CAR-82</td></tr>
+      <tr><td>AB-F10</td><td>Connect caregiver dashboard and shift clock</td><td><code>CaregiverDashboard.jsx</code>, <code>caregiverShiftService.js</code></td><td>CAR-96</td></tr>
+      <tr><td>AB-F11</td><td>Connect caregiver assignments and request details</td><td>Caregiver assigned/requested/detail pages, <code>assignmentService.js</code></td><td>CAR-96</td></tr>
+      <tr><td>AB-F12</td><td>Connect caregiver active visit execution</td><td><code>CaregiverActiveVisit.jsx</code>, <code>visitExecutionService.js</code></td><td>CAR-96</td></tr>
+      <tr><td>AB-F13</td><td>Connect caregiver notifications and communication workspace</td><td><code>CaregiverNotifications.jsx</code>, <code>components/communication/</code>, <code>communicationService.js</code></td><td>CAR-96</td></tr>
+      <tr><td>AB-F14</td><td>Connect caregiver payments and reports</td><td><code>CaregiverPayments.jsx</code>, <code>CaregiverReports.jsx</code></td><td>CAR-96, CAR-100</td></tr>
+      <tr><td>AB-F15</td><td>Connect client dashboard and assigned caregiver identity</td><td><code>ClientDashboard.jsx</code>, <code>AssignedCaregiverPhoto.jsx</code></td><td>CAR-97</td></tr>
+      <tr><td>AB-F16</td><td>Connect client attendance and caregiver verification</td><td><code>ClientAttendance.jsx</code>, <code>ClientCaregiverVerification.jsx</code></td><td>CAR-97</td></tr>
+      <tr><td>AB-F17</td><td>Connect client medical documents and payments</td><td><code>ClientMedicationUpload.jsx</code>, <code>ClientPayments.jsx</code></td><td>CAR-97, CAR-100</td></tr>
+      <tr><td>AB-F18</td><td>Connect client messaging and portal account controls</td><td><code>ClientMessages.jsx</code>, <code>ClientPortalLayout.jsx</code>, <code>ClientPortalRoute.jsx</code></td><td>CAR-97</td></tr>
+      <tr><td>AB-F19</td><td>Connect admin caregiver client and verification management</td><td><code>AdminCaregivers.jsx</code>, <code>AdminClients.jsx</code>, <code>AdminVerificationCenter.jsx</code>, admin directory/verification services</td><td>CAR-98</td></tr>
+      <tr><td>AB-F20</td><td>Connect admin requests matching and scheduling</td><td><code>AdminRequestsMatching.jsx</code>, <code>AdminSchedule.jsx</code></td><td>CAR-99</td></tr>
+      <tr><td>AB-F21</td><td>Connect admin live operations dashboard</td><td><code>AdminLiveOperations.jsx</code>, <code>AdminDashboard.jsx</code>, overview service</td><td>CAR-99</td></tr>
+      <tr><td>AB-F22</td><td>Connect admin finance and reporting</td><td><code>AdminFinance.jsx</code>, <code>AdminReports.jsx</code></td><td>CAR-100</td></tr>
+      <tr><td>AB-F23</td><td>Connect admin documents communications and incidents</td><td><code>AdminDocuments.jsx</code>, <code>AdminMessages.jsx</code>, <code>AdminDisputes.jsx</code>, communication/incident services</td><td>Admin operations</td></tr>
+      <tr><td>AB-F24</td><td>Connect real admin users settings and login</td><td><code>AdminUsers.jsx</code>, <code>AdminSettings.jsx</code>, <code>AdminLogin.jsx</code>, admin user/auth/settings services</td><td>CAR-98</td></tr>
+      <tr><td>AB-F25</td><td>Update frontend dependencies and deployment templates</td><td><code>package.json</code>, <code>package-lock.json</code>, <code>.env.example</code>, <code>.gitignore</code>, <code>vercel.json</code></td><td>CAR-101</td></tr>
+    </tbody>
+  </table>
+
+  <section class="card warn">
+    <h3 style="margin-top:0">About the 58 Abdul baseline groups</h3>
+    <p>The tables contain 33 backend and 25 frontend groups. That does not mean all 58 must become commits. Some groups may depend on the same modified file or fail independently if split. Abdul should combine dependent groups. A smaller set of clean commits is stronger evidence than a larger set of broken or artificial commits.</p>
+  </section>
+
+  <h2>4. Files repeatedly touched by multiple features</h2>
+  <table>
+    <thead><tr><th>Shared file</th><th>Why it overlaps</th><th>Correct handling</th></tr></thead>
+    <tbody>
+      <tr><td><code>server/index.js</code></td><td>Application creation, Firebase/network settings and startup</td><td>Commit complete final file in AB-B01 unless its diff has safely separable configuration hunks.</td></tr>
+      <tr><td><code>server/routes/admin.js</code></td><td>Older combined admin endpoints plus directory/verification changes</td><td>Prefer one admin-directory baseline commit. Do not repeat it across several commits.</td></tr>
+      <tr><td><code>.env.example</code></td><td>Firebase, CORS, Supabase, Stripe and map variables</td><td>Use <code>git add -p .env.example</code> only if each variable group is clearly independent; otherwise commit once with deployment configuration.</td></tr>
+      <tr><td><code>package-lock.json</code></td><td>All installed frontend/backend dependencies</td><td>Commit with <code>package.json</code> after all related source groups. Never split lockfile hunks manually.</td></tr>
+      <tr><td><code>AdminDashboard.jsx</code></td><td>Overview metrics, map and navigation integration</td><td>Place in the live-operations dashboard commit once.</td></tr>
+      <tr><td><code>AdminFinance.jsx</code></td><td>Stripe, client billing, caregiver payouts and metrics</td><td>Place in the finance integration commit once.</td></tr>
+      <tr><td><code>ClientPortalLayout.jsx</code></td><td>Identity, logout and portal navigation</td><td>Place in the client messaging/account-control commit once.</td></tr>
+      <tr><td><code>CaregiverDashboard.jsx</code></td><td>Dynamic stats, earnings and shift clock</td><td>Place in caregiver dashboard/shift commit once.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Md. Yusuf's genuine post-baseline work</h2>
+  <p>Yusuf's work begins only after Abdul pushes the baseline. These are eight potential commits, but each requires an actual code/test change. If no defect is found, Yusuf should commit a meaningful regression test or documentation result—not a no-op formatting change.</p>
+  <table>
+    <thead><tr><th>#</th><th>Branch and commit</th><th>Files Yusuf may change</th><th>Required proof</th></tr></thead>
+    <tbody>
+      <tr><td>YU-01</td><td><code>debug/CAR-73-environment</code><br>CAR-73 validate Firebase service-account configuration</td><td><code>environment.js</code>, <code>environment.test.js</code>, <code>firebaseAdmin.js</code>, <code>.env.example</code></td><td>Test for missing/malformed variable and passing full suite</td></tr>
+      <tr><td>YU-02</td><td>CAR-73 add multi-origin CORS regression coverage</td><td><code>environment.test.js</code>, <code>app.test.js</code></td><td>Local + Vercel origins accepted; unknown origin rejected</td></tr>
+      <tr><td>YU-03</td><td><code>debug/CAR-74-auth-roles</code><br>CAR-74 normalize invalid and expired token responses</td><td><code>authenticate.js</code>, auth/identity tests</td><td>401 response tests with no server 500</td></tr>
+      <tr><td>YU-04</td><td>CAR-74 add role authorization regression tests</td><td><code>roles.js</code>, <code>app.test.js</code> or focused new test</td><td>Client/caregiver/admin allow-deny matrix</td></tr>
+      <tr><td>YU-05</td><td><code>debug/CAR-78-admin-directory</code><br>CAR-78 fix verification profile mapping</td><td><code>adminDirectory.js</code>, <code>directory.js</code>, relevant tests</td><td>Real name/photo/status mapping evidence</td></tr>
+      <tr><td>YU-06</td><td>CAR-78 add suspension and directory visibility test</td><td>Admin directory route/service tests</td><td>Suspended caregiver excluded from public directory</td></tr>
+      <tr><td>YU-07</td><td><code>debug/CAR-88-repositories</code><br>CAR-88 handle missing Firestore records safely</td><td><code>firestoreRepository.js</code>, <code>userRepository.js</code>, repository tests</td><td>Missing and concurrent update cases pass</td></tr>
+      <tr><td>YU-08</td><td><code>test/CAR-89-api-regressions</code><br>CAR-89 document and expand API regression coverage</td><td><code>validation/</code>, selected model/API tests, new QA result document</td><td><code>npm run lint</code>, complete <code>npm test</code>, Swagger evidence</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Correct sequence for Abdul</h2>
+  <ol>
+    <li>Back up both working directories without copying secrets.</li>
+    <li>Run backend lint/tests and frontend lint/build.</li>
+    <li>Commit the backend baseline groups under Abdul's own configured Git identity.</li>
+    <li>Push backend <code>main</code> and verify Render.</li>
+    <li>Commit frontend baseline groups under Abdul's identity.</li>
+    <li>Push frontend <code>develop</code>; merge to Vercel's production branch if required.</li>
+    <li>Only after both baselines are remote, tell Yusuf to clone.</li>
+  </ol>
+  <pre><code># Confirm Abdul's identity before committing in each repository
+git config user.name
+git config user.email
+
+# Review each baseline group
+git add &lt;exact paths&gt;
+git diff --cached --stat
+git diff --cached
+git commit -m "&lt;AB-Bxx or AB-Fxx message&gt;"
+
+# Never commit until staged output is understood</code></pre>
+
+  <h2>7. Correct sequence for Yusuf</h2>
+  <pre><code># Do not paste the ZIP into this clone
+git clone https://github.com/azizfaisal992/SwyftOpsBD-API.git
+cd SwyftOpsBD-API
+npm install
+npm run lint
+npm test
+
+# Start one task from the latest remote baseline
+git switch -c debug/CAR-73-environment origin/main
+
+# Yusuf reproduces the bug, writes his change/test, then reviews it
+git status --short
+git diff
+npm run lint
+npm test
+git add &lt;only files actually changed for CAR-73&gt;
+git diff --cached
+git commit -m "CAR-73 validate Firebase service-account configuration"
+git push -u origin debug/CAR-73-environment</code></pre>
+  <p>Yusuf opens a pull request. Abdul reviews it. After merge, Yusuf starts the next branch from the newest <code>origin/main</code>.</p>
+
+  <h2>8. ZIP rule</h2>
+  <section class="card warn">
+    <p>The ZIP is a backup/reference only. It should not be the working repository and must not be pasted on top of a clone.</p>
+    <p>Never copy these from the ZIP: <code>.git/</code>, <code>.env</code>, <code>.env.local</code>, Firebase JSON, <code>node_modules/</code>, <code>dist/</code>, <code>uploads/</code>, real NIDs, medical documents, Stripe/Supabase secrets.</p>
+  </section>
+
+  <h2>9. Jira updates</h2>
+  <ul>
+    <li>Change CAR-84, CAR-85 and CAR-100 from Usrat to Abdul if Jira must reflect implementation ownership.</li>
+    <li>Keep Md. Yusuf assigned to CAR-73, CAR-74, CAR-78, CAR-88 and CAR-89 only if he performs the planned debugging/testing work.</li>
+    <li>Add the exact branch, commit, pull-request URL and test evidence to each Jira card.</li>
+    <li>Move a card to Done only after its pull request is merged or Abdul's baseline commit is pushed and verified.</li>
+  </ul>
+
+  <h2>10. Final checks before any push</h2>
+  <ul>
+    <li>Backend: <code>npm run lint</code> and <code>npm test</code></li>
+    <li>Frontend: <code>npm run lint</code> and <code>npm run build</code></li>
+    <li><code>git diff --check</code> in both repositories</li>
+    <li>No secret or credential file is tracked</li>
+    <li>No <code>uploads</code>, <code>dist</code> or <code>node_modules</code> is staged</li>
+    <li>Review <code>git status --short</code> after every commit</li>
+    <li>Verify Render before publishing frontend production</li>
+    <li>Verify authentication, onboarding, request/deposit, matching, assignment, visit and payout flows after deployment</li>
+  </ul>
+
+  <section class="card ok">
+    <h2 style="margin-top:0">Final ownership statement</h2>
+    <p><strong>Abdul:</strong> author and integrator of all currently local code; commits the complete baseline and controls deployment.</p>
+    <p><strong>Md. Yusuf:</strong> contributes new debugging, regression tests and quality fixes after cloning Abdul's pushed baseline.</p>
+    <p><strong>Usrat:</strong> no Git activity; her Jira display name must not be presented as code authorship.</p>
+  </section>
+</main>
+<footer>SwiftOpsBD · corrected Abdul/Yusuf ownership and commit plan · 15 August 2026</footer>
+</body>
+</html>
