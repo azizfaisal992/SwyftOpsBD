@@ -18,6 +18,7 @@ dist-ssr
 firebase-adminsdk-*.json
 .worktrees/
 uploads/
+.pdf-profile/
 
 # Editor directories and files
 .vscode/*
